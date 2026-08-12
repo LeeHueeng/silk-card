@@ -1,0 +1,22 @@
+{
+  "name": "silk-card",
+  "version": "0.1.0",
+  "description": "Buttery-smooth, interactive history graph card for Home Assistant",
+  "type": "module",
+  "license": "MIT",
+  "author": "LeeHueeng",
+  "repository": "github:LeeHueeng/silk-card",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "demo": "npm run build && python3 -m http.server 5050"
+  },
+  "dependencies": {
+    "lit": "^3.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}
