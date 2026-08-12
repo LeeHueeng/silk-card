@@ -2,8 +2,8 @@
 
 [한국어](../README.md) | **English** | [中文](README_zh.md) | [日本語](README_ja.md)
 
-**Buttery-smooth, interactive history graphs for Home Assistant.**
-Scrub it like a stock app. Switch ranges and watch it morph. Zero config required to look great.
+**A buttery-smooth card suite for Home Assistant.**
+From a graph you scrub like a stock app, to a light you dim by dragging the card itself, to a whole room summarized in one row — 11 cards, one design language. Zero config required to look great.
 
 ![Silk Card preview](preview.png)
 
@@ -22,6 +22,24 @@ Existing graph cards make you choose: minimal but frozen in time, or powerful bu
 - **Beautiful by default** — smooth monotone curves (no fake overshoot), soft gradient fill, a live pulsing "now" dot, min/max markers, and a change badge. All theme-aware out of the box.
 - **Long ranges that just work** — short windows use raw history; longer windows automatically switch to Home Assistant long-term statistics, so a 1-month graph works even after the recorder purges.
 - **Tiny** — hand-rolled SVG rendering, no charting library. One small JS file.
+
+## The cards
+
+| Card | Type | One-liner |
+| --- | --- | --- |
+| Graph | `custom:silk-card` | Scrub-and-morph interactive history graph |
+| Toggle | `custom:silk-toggle-card` | A crisp on/off row with a real switch |
+| Light | `custom:silk-light-card` | Drag anywhere on the card to dim |
+| Tile | `custom:silk-tile-card` | Sensor tile with sparkline + threshold colors |
+| Gauge | `custom:silk-gauge-card` | An arc gauge that animates to its value |
+| Climate | `custom:silk-climate-card` | Current, target, and modes in one block |
+| Cover | `custom:silk-cover-card` | Blinds with drag-anywhere position |
+| Fan | `custom:silk-fan-card` | Speed slider and an icon that actually spins |
+| Button | `custom:silk-button-card` | Scenes and scripts that feel physical |
+| Media | `custom:silk-media-card` | Artwork-first now playing |
+| Room | `custom:silk-room-card` | A room at a glance: sensors + quick controls |
+
+Full gallery: [gallery.png](gallery.png) · Try it locally: `npm run demo`
 
 ## Install
 

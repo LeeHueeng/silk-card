@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>silk-card demo</title>
+<title>Silk — card suite demo</title>
 <style>
   :root {
     --primary-color: #4aa8ff;
@@ -12,52 +12,124 @@
     --rgb-primary-text-color: 225, 229, 234;
     --secondary-text-color: #9aa4b2;
     --card-background-color: #1c1f26;
+    --secondary-background-color: #14161c;
+    --disabled-text-color: #6f6f6f;
     --error-color: #ef6c6c;
+    --page-bg: #12141a;
   }
+  :root[data-theme="light"] {
+    --primary-color: #1f7ae0;
+    --rgb-primary-color: 31, 122, 224;
+    --primary-text-color: #1c2430;
+    --rgb-primary-text-color: 28, 36, 48;
+    --secondary-text-color: #5d6b7c;
+    --card-background-color: #ffffff;
+    --secondary-background-color: #eef1f5;
+    --disabled-text-color: #b0b6bf;
+    --page-bg: #e9edf2;
+  }
+  * { box-sizing: border-box; }
   body {
     margin: 0;
     min-height: 100vh;
-    background: #12141a;
+    background: var(--page-bg);
     color: var(--primary-text-color);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 32px 16px;
-    box-sizing: border-box;
+    padding: 32px 20px 80px;
   }
-  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
-  p { color: var(--secondary-text-color); font-size: 13px; margin: 0 0 24px; }
+  header { max-width: 1180px; margin: 0 auto 8px; display: flex; align-items: baseline; gap: 12px; }
+  h1 { font-size: 20px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  header p { color: var(--secondary-text-color); font-size: 13px; margin: 0; flex: 1; }
+  #theme {
+    border: none; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    padding: 6px 12px; border-radius: 999px;
+    color: var(--secondary-text-color);
+    background: rgba(var(--rgb-primary-text-color), 0.08);
+  }
+  h2 {
+    max-width: 1180px; margin: 34px auto 12px; font-size: 13px; font-weight: 600;
+    color: var(--secondary-text-color); letter-spacing: 0.01em;
+  }
+  h2 span { color: var(--primary-text-color); }
   .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 420px));
-    gap: 16px;
-    width: 100%;
-    max-width: 880px;
-    justify-content: center;
+    max-width: 1180px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px;
   }
-  .slot { height: 200px; }
-  .slot.tall { height: 240px; }
+  .slot { height: 68px; }
+  .slot.h2x { height: 150px; }
+  .slot.h3x { height: 205px; }
+  .slot.sq { height: 150px; }
 </style>
 </head>
 <body>
-<h1>silk-card</h1>
-<p>Mock data — press and drag on a graph to scrub, tap the range chips to morph.</p>
-<div class="grid" id="grid"></div>
+<header>
+  <h1>Silk</h1>
+  <p>Every card is live — click, drag, toggle. Mock data only.</p>
+  <button id="theme">Light mode</button>
+</header>
+<main id="main"></main>
 
 <script type="module">
 import '../dist/silk-card.js';
 
-// Minimal stand-in for Home Assistant's ha-card element.
+/* ---------- minimal HA element stand-ins ---------- */
+
+import { MDI_PATHS } from './icons.js';
+
+const DOMAIN_ICONS = {
+  light: 'mdi:lightbulb', switch: 'mdi:power-socket-eu', input_boolean: 'mdi:toggle-switch',
+  fan: 'mdi:fan', cover: 'mdi:blinds-horizontal', climate: 'mdi:thermostat',
+  media_player: 'mdi:speaker', lock: 'mdi:lock', scene: 'mdi:palette',
+  script: 'mdi:script-text', button: 'mdi:gesture-tap-button', input_button: 'mdi:gesture-tap-button',
+  person: 'mdi:account', vacuum: 'mdi:robot-vacuum',
+};
+const CLASS_ICONS = {
+  temperature: 'mdi:thermometer', humidity: 'mdi:water-percent', power: 'mdi:flash',
+  battery: 'mdi:battery-70', carbon_dioxide: 'mdi:molecule-co2', energy: 'mdi:lightning-bolt',
+};
+
+function iconFor(stateObj) {
+  if (!stateObj) return 'mdi:help-circle-outline';
+  if (stateObj.attributes.icon) return stateObj.attributes.icon;
+  const cls = stateObj.attributes.device_class;
+  if (cls && CLASS_ICONS[cls]) return CLASS_ICONS[cls];
+  return DOMAIN_ICONS[stateObj.entity_id.split('.')[0]] ?? 'mdi:eye';
+}
+
+class MdiBase extends HTMLElement {
+  constructor() { super(); this.attachShadow({ mode: 'open' }); }
+  renderIcon(icon) {
+    const d = MDI_PATHS[icon] ?? MDI_PATHS['mdi:eye'];
+    this.shadowRoot.innerHTML =
+      '<style>:host{display:block;line-height:0}svg{width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px);fill:currentColor;display:block}</style>' +
+      `<svg viewBox="0 0 24 24"><path d="${d}"/></svg>`;
+  }
+}
+if (!customElements.get('ha-icon')) {
+  customElements.define('ha-icon', class extends MdiBase {
+    set icon(v) { this._i = v; this.renderIcon(v); }
+    get icon() { return this._i; }
+    connectedCallback() { if (!this.shadowRoot.innerHTML) this.renderIcon(this.getAttribute('icon') ?? this._i); }
+  });
+}
+if (!customElements.get('ha-state-icon')) {
+  customElements.define('ha-state-icon', class extends MdiBase {
+    set hass(_) {}
+    set stateObj(v) { this._s = v; this.renderIcon(iconFor(v)); }
+    connectedCallback() { if (!this.shadowRoot.innerHTML) this.renderIcon(iconFor(this._s)); }
+  });
+}
 if (!customElements.get('ha-card')) {
   customElements.define('ha-card', class extends HTMLElement {
     connectedCallback() {
-      this.style.cssText =
-        'display:flex;flex-direction:column;height:100%;background:var(--card-background-color);' +
-        'border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.35);overflow:hidden;box-sizing:border-box;';
+      this.style.cssText +=
+        ';background:var(--card-background-color);border-radius:16px;' +
+        'box-shadow:0 1px 2px rgba(0,0,0,.08),0 4px 14px rgba(0,0,0,.10);';
     }
   });
 }
+
+/* ---------- mock data ---------- */
 
 function mulberry32(seed) {
   return function () {
@@ -69,10 +141,16 @@ function mulberry32(seed) {
 }
 
 const SENSORS = {
-  'sensor.living_room_temperature': { base: 22, amp: 3, noise: 0.12, unit: '°C', name: 'Living room', device_class: 'temperature', seed: 11, gap: true },
-  'sensor.bedroom_temperature': { base: 20, amp: 2, noise: 0.1, unit: '°C', name: 'Bedroom', device_class: 'temperature', seed: 22 },
-  'sensor.house_power': { base: 640, amp: 320, noise: 60, unit: 'W', name: 'House power', device_class: 'power', seed: 33, spiky: true },
-  'sensor.bathroom_humidity': { base: 55, amp: 14, noise: 0.9, unit: '%', name: 'Bathroom humidity', device_class: 'humidity', seed: 44 },
+  'sensor.living_temp':   { base: 22, amp: 3, noise: 0.12, unit: '°C', name: 'Living room', device_class: 'temperature', seed: 11 },
+  'sensor.bedroom_temp':  { base: 20, amp: 2, noise: 0.1, unit: '°C', name: 'Bedroom', device_class: 'temperature', seed: 22 },
+  'sensor.office_temp':   { base: 23, amp: 2.4, noise: 0.1, unit: '°C', name: 'Office', device_class: 'temperature', seed: 55 },
+  'sensor.humidity':      { base: 55, amp: 14, noise: 0.9, unit: '%', name: 'Bathroom humidity', device_class: 'humidity', seed: 44 },
+  'sensor.house_power':   { base: 640, amp: 320, noise: 60, unit: 'W', name: 'House power', device_class: 'power', seed: 33, spiky: true },
+  'sensor.solar':         { base: 820, amp: 800, noise: 40, unit: 'W', name: 'Solar', device_class: 'power', seed: 77 },
+  'sensor.co2':           { base: 620, amp: 180, noise: 22, unit: 'ppm', name: 'CO₂', device_class: 'carbon_dioxide', seed: 66 },
+  'sensor.phone_battery': { base: 74, amp: 22, noise: 0.4, unit: '%', name: 'Phone battery', device_class: 'battery', seed: 88 },
+  'sensor.cpu':           { base: 34, amp: 22, noise: 6, unit: '%', name: 'Server CPU', seed: 99, icon: 'mdi:cpu-64-bit' },
+  'sensor.disk':          { base: 61, amp: 2, noise: 0.2, unit: '%', name: 'NVMe used', seed: 12, icon: 'mdi:harddisk' },
 };
 
 function valueAt(id, t) {
@@ -85,90 +163,241 @@ function valueAt(id, t) {
   return v;
 }
 
+const ART = 'data:image/svg+xml;base64,' + btoa(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="84" height="84">' +
+  '<rect width="84" height="84" fill="#2b3a67"/><circle cx="26" cy="60" r="17" fill="#e8734f"/>' +
+  '<circle cx="60" cy="28" r="24" fill="#4aa8ff" opacity="0.85"/></svg>'
+);
+
+const now = () => new Date().toISOString();
+const E = (id, state, attributes = {}) =>
+  [id, { entity_id: id, state: String(state), attributes, last_changed: now(), last_updated: now() }];
+
+const states = Object.fromEntries([
+  ...Object.entries(SENSORS).map(([id, s]) =>
+    E(id, valueAt(id, Date.now() / 1000).toFixed(1), {
+      unit_of_measurement: s.unit, friendly_name: s.name, device_class: s.device_class,
+      ...(s.icon ? { icon: s.icon } : {}),
+      ...(id === 'sensor.disk' ? {} : { state_class: 'measurement' }),
+    })
+  ),
+  E('light.living_spot', 'on', { friendly_name: 'Living spots', brightness: 184, supported_color_modes: ['brightness'], color_mode: 'brightness' }),
+  E('light.desk_lamp', 'off', { friendly_name: 'Desk lamp', supported_color_modes: ['brightness'] }),
+  E('light.hallway', 'on', { friendly_name: 'Hallway', brightness: 255, supported_color_modes: ['brightness'], color_mode: 'brightness' }),
+  E('light.closet', 'on', { friendly_name: 'Closet', supported_color_modes: ['onoff'], color_mode: 'onoff' }),
+  E('light.bedroom_main', 'off', { friendly_name: 'Bedroom main', supported_color_modes: ['brightness'] }),
+  E('switch.espresso', 'on', { friendly_name: 'Espresso machine', icon: 'mdi:coffee-maker' }),
+  E('switch.heater_plug', 'off', { friendly_name: 'Heater plug', icon: 'mdi:radiator' }),
+  E('switch.aquarium', 'unavailable', { friendly_name: 'Aquarium pump' }),
+  E('lock.front_door', 'locked', { friendly_name: 'Front door' }),
+  E('input_boolean.guest_mode', 'off', { friendly_name: 'Guest mode', icon: 'mdi:account-group' }),
+  E('fan.bedroom', 'on', { friendly_name: 'Bedroom fan', percentage: 66, percentage_step: 1, supported_features: 1 }),
+  E('fan.air_purifier', 'on', { friendly_name: 'Air purifier', percentage: 40, percentage_step: 20, preset_modes: ['Auto', 'Sleep', 'Turbo'], preset_mode: 'Auto', supported_features: 9, icon: 'mdi:air-purifier' }),
+  E('fan.ceiling', 'off', { friendly_name: 'Ceiling fan', percentage: 0, percentage_step: 25, supported_features: 1 }),
+  E('cover.living_blinds', 'open', { friendly_name: 'Living blinds', current_position: 70, supported_features: 15 }),
+  E('cover.bedroom_curtain', 'closed', { friendly_name: 'Bedroom curtain', current_position: 0, supported_features: 15, icon: 'mdi:curtains' }),
+  E('cover.garage', 'open', { friendly_name: 'Garage door', supported_features: 11, icon: 'mdi:garage' }),
+  E('climate.living', 'heat', { friendly_name: 'Living thermostat', current_temperature: 21.4, temperature: 22.5, min_temp: 7, max_temp: 35, target_temp_step: 0.5, hvac_modes: ['heat', 'cool', 'auto', 'off'], hvac_action: 'heating', supported_features: 385 }),
+  E('climate.aircon', 'cool', { friendly_name: 'Bedroom AC', current_temperature: 26.8, temperature: 24, min_temp: 16, max_temp: 30, target_temp_step: 1, hvac_modes: ['cool', 'dry', 'fan_only', 'off'], hvac_action: 'cooling', supported_features: 385, icon: 'mdi:air-conditioner' }),
+  E('climate.floor_heating', 'heat_cool', { friendly_name: 'Floor heating', current_temperature: 22.1, target_temp_low: 20, target_temp_high: 24, min_temp: 7, max_temp: 35, target_temp_step: 0.5, hvac_modes: ['heat_cool', 'off'], hvac_action: 'idle', supported_features: 386 }),
+  E('media_player.living_speaker', 'playing', { friendly_name: 'Living speaker', media_title: 'Midnight City', media_artist: 'M83', volume_level: 0.35, entity_picture: ART, supported_features: 84373 }),
+  E('media_player.kitchen_speaker', 'paused', { friendly_name: 'Kitchen speaker', media_title: 'Lo-fi beats to focus to', media_artist: 'Various', volume_level: 0.2, supported_features: 84373 }),
+  E('media_player.tv', 'off', { friendly_name: 'Living TV', supported_features: 84373, icon: 'mdi:television' }),
+  E('scene.movie_night', '2026-08-11T20:12:00Z', { friendly_name: 'Movie night', icon: 'mdi:movie-open' }),
+  E('scene.good_morning', '2026-08-12T07:00:00Z', { friendly_name: 'Good morning', icon: 'mdi:weather-sunset-up' }),
+  E('script.close_everything', 'off', { friendly_name: 'Close everything', icon: 'mdi:shield-home' }),
+  E('button.restart_router', '2026-08-12T01:00:00Z', { friendly_name: 'Restart router', icon: 'mdi:router-wireless' }),
+]);
+
 function genHistory(id, start, end, step) {
-  const s = SENSORS[id];
   const rows = [];
-  for (let t = start; t <= end; t += step) {
-    const inGap = s.gap && t > end - (end - start) * 0.42 && t < end - (end - start) * 0.34;
-    rows.push({ s: inGap ? 'unavailable' : valueAt(id, t).toFixed(2), lu: t });
-  }
+  for (let t = start; t <= end; t += step) rows.push({ s: valueAt(id, t).toFixed(2), lu: t });
   return rows;
 }
+
+/* ---------- mock hass ---------- */
+
+const bump = (id, patch, attrs) => {
+  const s = states[id];
+  states[id] = {
+    ...s,
+    ...(patch ? { state: patch } : {}),
+    attributes: { ...s.attributes, ...attrs },
+    last_updated: now(), last_changed: now(),
+  };
+};
 
 const hassBase = {
   locale: { language: 'en' },
   entities: {},
+  formatEntityState(st) {
+    const map = { on: 'On', off: 'Off', open: 'Open', closed: 'Closed', locked: 'Locked', unlocked: 'Unlocked', playing: 'Playing', paused: 'Paused', heat: 'Heat', cool: 'Cool', heat_cool: 'Heat/Cool', auto: 'Auto', unavailable: 'Unavailable' };
+    return map[st.state] ?? st.state;
+  },
+  async callService(domain, service, data = {}) {
+    const id = data.entity_id;
+    console.info('callService', domain, service, data);
+    if (service === 'turn_on') {
+      if (domain === 'light') bump(id, 'on', data.brightness_pct != null ? { brightness: Math.round(data.brightness_pct * 2.55) } : {});
+      else if (domain === 'script') { bump(id, 'on'); setTimeout(() => { bump(id, 'off'); push(); }, 3000); }
+      else if (domain !== 'scene') bump(id, 'on');
+    } else if (service === 'turn_off') bump(id, 'off', domain === 'fan' ? { percentage: 0 } : {});
+    else if (service === 'press') { /* stateless */ }
+    else if (service === 'lock') bump(id, 'locked');
+    else if (service === 'unlock') bump(id, 'unlocked');
+    else if (service === 'open_cover') bump(id, 'open', { current_position: 100 });
+    else if (service === 'close_cover') bump(id, 'closed', { current_position: 0 });
+    else if (service === 'stop_cover') { /* noop */ }
+    else if (service === 'set_cover_position') bump(id, data.position > 0 ? 'open' : 'closed', { current_position: data.position });
+    else if (service === 'set_percentage') bump(id, data.percentage > 0 ? 'on' : 'off', { percentage: data.percentage });
+    else if (service === 'set_preset_mode') bump(id, 'on', { preset_mode: data.preset_mode });
+    else if (service === 'set_temperature') bump(id, null, data.temperature != null ? { temperature: data.temperature } : { target_temp_low: data.target_temp_low, target_temp_high: data.target_temp_high });
+    else if (service === 'set_hvac_mode') bump(id, data.hvac_mode, { hvac_action: data.hvac_mode === 'off' ? undefined : 'idle' });
+    else if (service === 'media_play_pause') bump(id, states[id].state === 'playing' ? 'paused' : 'playing');
+    else if (service === 'media_next_track' || service === 'media_previous_track') bump(id, null, { media_title: service.includes('next') ? 'Next song' : 'Previous song' });
+    else if (service === 'volume_set') bump(id, null, { volume_level: data.volume_level });
+    push();
+  },
   async callWS(msg) {
+    await new Promise((r) => setTimeout(r, 100));
     const start = Date.parse(msg.start_time) / 1000;
     const end = Date.parse(msg.end_time) / 1000;
-    await new Promise((r) => setTimeout(r, 120)); // simulate latency
     if (msg.type === 'history/history_during_period') {
-      const out = {};
-      for (const id of msg.entity_ids) out[id] = genHistory(id, start, end, Math.max((end - start) / 260, 30));
-      return out;
+      return Object.fromEntries(msg.entity_ids.map((id) => [id, SENSORS[id] ? genHistory(id, start, end, Math.max((end - start) / 260, 30)) : []]));
     }
     if (msg.type === 'recorder/statistics_during_period') {
-      const out = {};
-      for (const id of msg.statistic_ids) {
-        out[id] = [];
-        for (let t = start; t <= end; t += 3600) out[id].push({ start: t * 1000, mean: valueAt(id, t) });
-      }
-      return out;
+      return Object.fromEntries(msg.statistic_ids.map((id) => {
+        if (!SENSORS[id]) return [id, []];
+        const rows = [];
+        for (let t = start; t <= end; t += 3600) rows.push({ start: t * 1000, mean: valueAt(id, t) });
+        return [id, rows];
+      }));
     }
-    throw new Error(`unmocked WS call: ${msg.type}`);
+    throw new Error('unmocked: ' + msg.type);
   },
 };
 
-function buildStates() {
-  const now = Date.now();
-  const states = {};
-  for (const [id, s] of Object.entries(SENSORS)) {
-    states[id] = {
-      entity_id: id,
-      state: valueAt(id, now / 1000).toFixed(2),
-      attributes: { unit_of_measurement: s.unit, friendly_name: s.name, device_class: s.device_class },
-      last_changed: new Date(now).toISOString(),
-      last_updated: new Date(now).toISOString(),
-    };
-  }
-  return states;
-}
+/* ---------- gallery ---------- */
 
-const CARDS = [
-  { slot: '', config: { type: 'custom:silk-card', entity: 'sensor.living_room_temperature' } },
-  {
-    slot: 'tall',
-    config: {
-      type: 'custom:silk-card',
-      name: 'Climate',
-      entities: [
-        { entity: 'sensor.living_room_temperature', name: 'Living room' },
-        { entity: 'sensor.bedroom_temperature', name: 'Bedroom', color: '#f0b357' },
-      ],
-    },
-  },
-  { slot: '', config: { type: 'custom:silk-card', entity: 'sensor.house_power', color: '#5ec78d', extremes: false } },
-  { slot: '', config: { type: 'custom:silk-card', entity: 'sensor.bathroom_humidity', y_min: 0, y_max: 100, ranges: ['1h', '1d', '3d'] } },
+const SECTIONS = [
+  ['Graph — scrub it, morph it', [
+    ['h3x', { type: 'custom:silk-card', entity: 'sensor.living_temp' }],
+    ['h3x', { type: 'custom:silk-card', name: 'Climate', entities: [{ entity: 'sensor.living_temp', name: 'Living' }, { entity: 'sensor.bedroom_temp', name: 'Bedroom', color: '#f0b357' }] }],
+    ['h3x', { type: 'custom:silk-card', entity: 'sensor.house_power', color: '#5ec78d', extremes: false }],
+    ['h3x', { type: 'custom:silk-card', entity: 'sensor.humidity', y_min: 0, y_max: 100, ranges: ['1h', '1d', '3d'] }],
+    ['h3x', { type: 'custom:silk-card', entity: 'sensor.solar', color: '#e6a23c', range_selector: false, extremes: false, delta: false }],
+  ]],
+  ['Toggle — the on/off row', [
+    ['', { type: 'custom:silk-toggle-card', entity: 'switch.espresso' }],
+    ['', { type: 'custom:silk-toggle-card', entity: 'switch.heater_plug' }],
+    ['', { type: 'custom:silk-toggle-card', entity: 'light.closet' }],
+    ['', { type: 'custom:silk-toggle-card', entity: 'lock.front_door', confirm: true }],
+    ['', { type: 'custom:silk-toggle-card', entity: 'input_boolean.guest_mode' }],
+    ['', { type: 'custom:silk-toggle-card', entity: 'switch.aquarium' }],
+    ['', { type: 'custom:silk-toggle-card', entity: 'fan.ceiling' }],
+  ]],
+  ['Light — drag anywhere to dim', [
+    ['', { type: 'custom:silk-light-card', entity: 'light.living_spot' }],
+    ['', { type: 'custom:silk-light-card', entity: 'light.desk_lamp' }],
+    ['', { type: 'custom:silk-light-card', entity: 'light.hallway' }],
+    ['', { type: 'custom:silk-light-card', entity: 'light.bedroom_main', color: '#9d7ee8' }],
+    ['', { type: 'custom:silk-light-card', entity: 'light.closet' }],
+  ]],
+  ['Tile — sensors with a living sparkline', [
+    ['h2x', { type: 'custom:silk-tile-card', entity: 'sensor.living_temp' }],
+    ['h2x', { type: 'custom:silk-tile-card', entity: 'sensor.humidity', thresholds: [{ value: 0, color: '#4aa8ff' }, { value: 60, color: '#e6a23c' }, { value: 75, color: '#ef6c6c' }] }],
+    ['h2x', { type: 'custom:silk-tile-card', entity: 'sensor.house_power', color: '#5ec78d' }],
+    ['h2x', { type: 'custom:silk-tile-card', entity: 'sensor.co2', thresholds: [{ value: 0, color: '#5ec78d' }, { value: 800, color: '#e6a23c' }, { value: 1200, color: '#ef6c6c' }] }],
+    ['h2x', { type: 'custom:silk-tile-card', entity: 'sensor.solar', color: '#e6a23c', hours_to_show: 12 }],
+    ['h2x', { type: 'custom:silk-tile-card', entity: 'sensor.bedroom_temp' }],
+    ['h2x', { type: 'custom:silk-tile-card', entity: 'sensor.cpu', color: '#6c8dd6', hours_to_show: 6 }],
+  ]],
+  ['Gauge — the animated arc', [
+    ['sq', { type: 'custom:silk-gauge-card', entity: 'sensor.phone_battery', segments: [{ from: 0, color: '#ef6c6c' }, { from: 25, color: '#e6a23c' }, { from: 50, color: '#5ec78d' }] }],
+    ['sq', { type: 'custom:silk-gauge-card', entity: 'sensor.cpu', name: 'CPU' }],
+    ['sq', { type: 'custom:silk-gauge-card', entity: 'sensor.disk', name: 'NVMe', segments: [{ from: 0, color: '#5ec78d' }, { from: 70, color: '#e6a23c' }, { from: 90, color: '#ef6c6c' }] }],
+    ['sq', { type: 'custom:silk-gauge-card', entity: 'sensor.humidity', name: 'Humidity', color: '#4aa8ff' }],
+    ['sq', { type: 'custom:silk-gauge-card', entity: 'sensor.house_power', name: 'Power', max: 3000, unit: 'W', color: '#5ec78d' }],
+    ['sq', { type: 'custom:silk-gauge-card', entity: 'sensor.co2', name: 'CO₂', max: 2000, unit: 'ppm', segments: [{ from: 0, color: '#5ec78d' }, { from: 800, color: '#e6a23c' }, { from: 1200, color: '#ef6c6c' }] }],
+  ]],
+  ['Climate — compact thermostat', [
+    ['h2x', { type: 'custom:silk-climate-card', entity: 'climate.living' }],
+    ['h2x', { type: 'custom:silk-climate-card', entity: 'climate.aircon' }],
+    ['h2x', { type: 'custom:silk-climate-card', entity: 'climate.floor_heating' }],
+  ]],
+  ['Cover — position at a drag', [
+    ['', { type: 'custom:silk-cover-card', entity: 'cover.living_blinds' }],
+    ['', { type: 'custom:silk-cover-card', entity: 'cover.bedroom_curtain' }],
+    ['', { type: 'custom:silk-cover-card', entity: 'cover.garage' }],
+  ]],
+  ['Fan — it actually spins', [
+    ['', { type: 'custom:silk-fan-card', entity: 'fan.bedroom' }],
+    ['', { type: 'custom:silk-fan-card', entity: 'fan.air_purifier' }],
+    ['', { type: 'custom:silk-fan-card', entity: 'fan.ceiling' }],
+  ]],
+  ['Button — scenes that feel physical', [
+    ['', { type: 'custom:silk-button-card', entity: 'scene.movie_night' }],
+    ['', { type: 'custom:silk-button-card', entity: 'scene.good_morning' }],
+    ['', { type: 'custom:silk-button-card', entity: 'script.close_everything' }],
+    ['', { type: 'custom:silk-button-card', entity: 'button.restart_router', confirm: true }],
+  ]],
+  ['Media — artwork first', [
+    ['h2x', { type: 'custom:silk-media-card', entity: 'media_player.living_speaker' }],
+    ['h2x', { type: 'custom:silk-media-card', entity: 'media_player.kitchen_speaker' }],
+    ['h2x', { type: 'custom:silk-media-card', entity: 'media_player.tv' }],
+  ]],
+  ['Room — the whole home, one row each', [
+    ['', { type: 'custom:silk-room-card', name: 'Living room', icon: 'mdi:sofa', sensors: ['sensor.living_temp', 'sensor.humidity'], toggles: ['light.living_spot', 'light.hallway', 'switch.espresso'], count_active: ['light.living_spot', 'light.hallway', 'light.closet'] }],
+    ['', { type: 'custom:silk-room-card', name: 'Bedroom', icon: 'mdi:bed-king', sensors: ['sensor.bedroom_temp'], toggles: ['light.bedroom_main', 'fan.bedroom', 'cover.bedroom_curtain'], color: '#9d7ee8' }],
+    ['', { type: 'custom:silk-room-card', name: 'Office', icon: 'mdi:desk', sensors: ['sensor.office_temp', 'sensor.cpu'], toggles: ['light.desk_lamp', 'switch.heater_plug'] }],
+    ['', { type: 'custom:silk-room-card', name: 'Kitchen', icon: 'mdi:silverware-fork-knife', sensors: ['sensor.co2'], toggles: ['switch.espresso', 'media_player.kitchen_speaker'], color: '#e6a23c' }],
+  ]],
 ];
 
-await customElements.whenDefined('silk-card');
-const grid = document.getElementById('grid');
-const cards = CARDS.map(({ slot, config }) => {
-  const wrap = document.createElement('div');
-  wrap.className = `slot ${slot}`;
-  const card = document.createElement('silk-card');
-  card.setConfig(config);
-  wrap.appendChild(card);
-  grid.appendChild(wrap);
-  return card;
-});
+const cards = [];
+const main = document.getElementById('main');
+let count = 0;
+
+for (const [title, slots] of SECTIONS) {
+  const h = document.createElement('h2');
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  let ok = 0;
+  for (const [cls, config] of slots) {
+    const tag = config.type.replace('custom:', '');
+    if (!customElements.get(tag)) continue;
+    const wrap = document.createElement('div');
+    wrap.className = `slot ${cls}`;
+    const card = document.createElement(tag);
+    try { card.setConfig(config); } catch (e) { console.warn(tag, e); continue; }
+    wrap.appendChild(card);
+    grid.appendChild(wrap);
+    cards.push(card);
+    ok++; count++;
+  }
+  h.innerHTML = `<span>${title.split(' — ')[0]}</span> — ${title.split(' — ')[1] ?? ''} · ${ok}`;
+  if (ok) { main.appendChild(h); main.appendChild(grid); }
+}
+console.info(`Silk demo: ${count} live cards`);
 
 function push() {
-  const hass = { ...hassBase, states: buildStates() };
+  const hass = { ...hassBase, states: { ...states } };
   for (const card of cards) card.hass = hass;
 }
 push();
-setInterval(push, 5000);
+setInterval(() => {
+  for (const id of Object.keys(SENSORS)) {
+    bump(id, valueAt(id, Date.now() / 1000).toFixed(1), {});
+  }
+  push();
+}, 5000);
+
+document.getElementById('theme').addEventListener('click', () => {
+  const root = document.documentElement;
+  const light = root.dataset.theme === 'light';
+  root.dataset.theme = light ? '' : 'light';
+  document.getElementById('theme').textContent = light ? 'Light mode' : 'Dark mode';
+});
 </script>
 </body>
 </html>

@@ -2,8 +2,8 @@
 
 **한국어** | [English](docs/README_en.md) | [中文](docs/README_zh.md) | [日本語](docs/README_ja.md)
 
-**Home Assistant를 위한 버터처럼 부드러운 인터랙티브 히스토리 그래프.**
-주식 앱처럼 문질러서 값을 읽고, 범위를 바꾸면 곡선이 모핑됩니다. 설정 없이도 그냥 예쁩니다.
+**Home Assistant를 위한 버터처럼 부드러운 카드 스위트.**
+주식 앱처럼 문지르는 그래프부터, 카드 전체를 드래그해 밝기를 조절하는 조명, 방 하나를 한 줄로 요약하는 룸 카드까지 — 11종의 카드가 하나의 디자인 언어를 씁니다. 설정 없이도 그냥 예쁩니다.
 
 ![Silk Card preview](docs/preview.png)
 
@@ -22,6 +22,24 @@
 - **기본값으로 아름다움** — 과장 없는 monotone 곡선(가짜 오버슈트 없음), 은은한 그라데이션, 살아 숨쉬는 현재값 펄스 점, 최소/최대 마커, 변화량 배지. 전부 테마를 자동으로 따라갑니다.
 - **긴 범위도 그냥 동작** — 짧은 창은 원시 히스토리를, 긴 창은 Home Assistant 장기 통계를 자동으로 사용합니다. recorder가 오래된 데이터를 지워도 1개월 그래프가 나옵니다.
 - **초경량** — 차트 라이브러리 없이 SVG를 직접 렌더링. 작은 JS 파일 하나가 전부입니다.
+
+## 카드 11종
+
+| 카드 | 타입 | 한 줄 요약 |
+| --- | --- | --- |
+| Graph | `custom:silk-card` | 스크럽·모핑되는 인터랙티브 히스토리 그래프 |
+| Toggle | `custom:silk-toggle-card` | 진짜 스위치가 달린 온/오프 행 |
+| Light | `custom:silk-light-card` | 카드 전체를 드래그해 밝기 조절 |
+| Tile | `custom:silk-tile-card` | 스파크라인 + 임계값 색상 센서 타일 |
+| Gauge | `custom:silk-gauge-card` | 값으로 스르륵 움직이는 아크 게이지 |
+| Climate | `custom:silk-climate-card` | 현재·목표·모드를 한 블록에 담은 온도조절기 |
+| Cover | `custom:silk-cover-card` | 드래그로 위치 조절하는 블라인드 |
+| Fan | `custom:silk-fan-card` | 실제로 도는 아이콘과 속도 슬라이더 |
+| Button | `custom:silk-button-card` | 물리 버튼처럼 눌리는 씬/스크립트 |
+| Media | `custom:silk-media-card` | 아트워크 중심 미디어 컨트롤 |
+| Room | `custom:silk-room-card` | 방 하나를 한 줄로: 센서 + 빠른 제어 |
+
+전체 갤러리: [docs/gallery.png](docs/gallery.png) · 로컬에서 만져보기: `npm run demo`
 
 ## 설치
 

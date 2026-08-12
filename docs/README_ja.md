@@ -2,8 +2,8 @@
 
 [한국어](../README.md) | [English](README_en.md) | [中文](README_zh.md) | **日本語**
 
-**Home Assistant のための、バターのように滑らかなインタラクティブ履歴グラフ。**
-株アプリのように指でなぞって値を読み、期間を切り替えるとグラフがモーフィングします。設定ゼロでも美しい。
+**Home Assistant のための、バターのように滑らかなカードスイート。**
+株アプリのようになぞれるグラフから、カード全体をドラッグして調光するライト、部屋を一行に要約するルームカードまで — 11 種類のカードがひとつのデザイン言語を共有します。設定ゼロでも美しい。
 
 ![Silk Card preview](preview.png)
 
@@ -22,6 +22,24 @@
 - **デフォルトで美しい** — オーバーシュートのない monotone 曲線、柔らかなグラデーション、脈打つ「現在」ドット、最小/最大マーカー、変化量バッジ。すべてテーマに自動追従。
 - **長期間もそのまま動く** — 短い窓は生の履歴を、長い窓は Home Assistant の長期統計を自動的に使用。recorder が古いデータを消しても 1 ヶ月グラフが表示されます。
 - **超軽量** — チャートライブラリなしの手書き SVG レンダリング。小さな JS ファイル 1 つだけ。
+
+## カード一覧
+
+| カード | タイプ | ひとこと |
+| --- | --- | --- |
+| Graph | `custom:silk-card` | なぞって読める・モーフィングする履歴グラフ |
+| Toggle | `custom:silk-toggle-card` | 本物のスイッチ付きオン/オフ行 |
+| Light | `custom:silk-light-card` | カードのどこをドラッグしても調光 |
+| Tile | `custom:silk-tile-card` | スパークライン + しきい値カラーのセンサータイル |
+| Gauge | `custom:silk-gauge-card` | 値までスッと動くアークゲージ |
+| Climate | `custom:silk-climate-card` | 現在・目標・モードをひとつのブロックに |
+| Cover | `custom:silk-cover-card` | ドラッグで位置を決めるブラインド |
+| Fan | `custom:silk-fan-card` | 速度スライダーと本当に回るアイコン |
+| Button | `custom:silk-button-card` | 物理ボタンの手応えのシーン/スクリプト |
+| Media | `custom:silk-media-card` | アートワーク主役のメディア操作 |
+| Room | `custom:silk-room-card` | 部屋を一行で: センサー + クイック操作 |
+
+ギャラリー全体: [gallery.png](gallery.png) · ローカルで試す: `npm run demo`
 
 ## インストール
 

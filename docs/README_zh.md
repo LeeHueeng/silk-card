@@ -2,8 +2,8 @@
 
 [한국어](../README.md) | [English](README_en.md) | **中文** | [日本語](README_ja.md)
 
-**为 Home Assistant 打造的如丝般顺滑的交互式历史曲线卡片。**
-像股票 App 一样按住拖动读数，切换时间范围时曲线平滑变形。无需任何配置即可拥有出色的外观。
+**为 Home Assistant 打造的如丝般顺滑的卡片套件。**
+从像股票 App 一样拖动读数的曲线，到拖动整张卡片调节亮度的灯光，再到一行概括整个房间的房间卡 — 11 种卡片，同一套设计语言。无需任何配置即可拥有出色的外观。
 
 ![Silk Card preview](preview.png)
 
@@ -22,6 +22,24 @@
 - **默认即美观** — 平滑的单调曲线（无虚假过冲）、柔和的渐变填充、跳动的当前值光点、最大/最小值标记、变化量徽章。全部自动适配主题。
 - **长时间范围开箱即用** — 短窗口使用原始历史数据；长窗口自动切换到 Home Assistant 长期统计数据，即使 recorder 清除了旧数据，一个月的曲线也照常显示。
 - **极致轻量** — 手写 SVG 渲染，不依赖任何图表库。只有一个小小的 JS 文件。
+
+## 卡片一览
+
+| 卡片 | 类型 | 一句话 |
+| --- | --- | --- |
+| Graph | `custom:silk-card` | 可拖动读数、平滑变形的历史曲线 |
+| Toggle | `custom:silk-toggle-card` | 带真实开关的开/关行 |
+| Light | `custom:silk-light-card` | 在卡片任意位置拖动调光 |
+| Tile | `custom:silk-tile-card` | 带迷你曲线和阈值配色的传感器磁贴 |
+| Gauge | `custom:silk-gauge-card` | 平滑动画的弧形仪表 |
+| Climate | `custom:silk-climate-card` | 当前温度、目标温度、模式一目了然 |
+| Cover | `custom:silk-cover-card` | 拖动定位的窗帘/百叶 |
+| Fan | `custom:silk-fan-card` | 速度滑条 + 真正会转的图标 |
+| Button | `custom:silk-button-card` | 手感如物理按键的场景/脚本 |
+| Media | `custom:silk-media-card` | 封面优先的媒体控制 |
+| Room | `custom:silk-room-card` | 一行看清一个房间：传感器 + 快捷控制 |
+
+完整画廊：[gallery.png](gallery.png) · 本地体验：`npm run demo`
 
 ## 安装
 

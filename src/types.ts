@@ -12,6 +12,12 @@ export interface HomeAssistant {
   locale?: { language: string };
   language?: string;
   callWS<T>(msg: Record<string, unknown>): Promise<T>;
+  callService(
+    domain: string,
+    service: string,
+    data?: Record<string, unknown>
+  ): Promise<unknown>;
+  formatEntityState?(stateObj: HassEntity): string;
 }
 
 export interface LovelaceCardConfig {
