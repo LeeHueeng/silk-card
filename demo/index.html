@@ -58,6 +58,7 @@
   .slot { height: 68px; }
   .slot.h2x { height: 150px; }
   .slot.h3x { height: 205px; }
+  .slot.h4x { height: 270px; }
   .slot.sq { height: 150px; }
 </style>
 </head>
@@ -85,6 +86,9 @@ const DOMAIN_ICONS = {
   weather: 'mdi:weather-partly-cloudy', timer: 'mdi:timer-outline', update: 'mdi:update',
   todo: 'mdi:clipboard-list-outline', alarm_control_panel: 'mdi:shield',
   binary_sensor: 'mdi:radiobox-marked', camera: 'mdi:video', number: 'mdi:ray-vertex',
+  input_number: 'mdi:ray-vertex', select: 'mdi:format-list-bulleted', input_select: 'mdi:format-list-bulleted',
+  humidifier: 'mdi:air-humidifier', automation: 'mdi:robot', calendar: 'mdi:calendar',
+  sun: 'mdi:weather-sunny', remote: 'mdi:remote',
 };
 const CLASS_ICONS = {
   temperature: 'mdi:thermometer', humidity: 'mdi:water-percent', power: 'mdi:flash',
@@ -154,6 +158,9 @@ const SENSORS = {
   'sensor.phone_battery': { base: 74, amp: 22, noise: 0.4, unit: '%', name: 'Phone battery', device_class: 'battery', seed: 88 },
   'sensor.cpu':           { base: 34, amp: 22, noise: 6, unit: '%', name: 'Server CPU', seed: 99, icon: 'mdi:cpu-64-bit' },
   'sensor.disk':          { base: 61, amp: 2, noise: 0.2, unit: '%', name: 'NVMe used', seed: 12, icon: 'mdi:harddisk' },
+  'sensor.net_down':      { base: 42, amp: 30, noise: 12, unit: 'KiB/s', name: 'Download', seed: 71, spiky: true },
+  'sensor.net_up':        { base: 14, amp: 8, noise: 4, unit: 'KiB/s', name: 'Upload', seed: 72 },
+  'sensor.outdoor_temp':  { base: 29, amp: 5, noise: 0.2, unit: '°C', name: 'Outdoor', device_class: 'temperature', seed: 73 },
 };
 
 function valueAt(id, t) {
@@ -179,6 +186,11 @@ const ART2 = 'data:image/svg+xml;base64,' + btoa(
   '<rect x="170" y="110" width="120" height="8" fill="#2b3446"/><rect x="0" y="168" width="320" height="12" fill="#0c0f16"/>' +
   '<circle cx="74" cy="106" r="3" fill="#f0b357"/></svg>'
 );
+
+let NOTIFS = [
+  { notification_id: 'n1', title: 'Backup finished', message: 'NAS nightly backup completed in 42 minutes.', created_at: new Date(Date.now() - 40 * 60000).toISOString() },
+  { notification_id: 'n2', title: 'Login attempt', message: 'Failed login from 192.168.0.77.', created_at: new Date(Date.now() - 3 * 3600_000).toISOString() },
+];
 
 let TODO_ITEMS = [
   { uid: 't1', summary: '우유 사기', status: 'needs_action' },
@@ -233,6 +245,7 @@ const states = Object.fromEntries([
   E('light.hallway', 'on', { friendly_name: 'Hallway', brightness: 255, supported_color_modes: ['brightness'], color_mode: 'brightness' }),
   E('light.closet', 'on', { friendly_name: 'Closet', supported_color_modes: ['onoff'], color_mode: 'onoff' }),
   E('light.bedroom_main', 'off', { friendly_name: 'Bedroom main', supported_color_modes: ['brightness'] }),
+  E('light.tv_ambient', 'on', { friendly_name: 'TV ambient', brightness: 200, hs_color: [28, 62], supported_color_modes: ['hs', 'color_temp'], color_mode: 'hs', min_color_temp_kelvin: 2000, max_color_temp_kelvin: 6500 }),
   E('switch.espresso', 'on', { friendly_name: 'Espresso machine', icon: 'mdi:coffee-maker' }),
   E('switch.heater_plug', 'off', { friendly_name: 'Heater plug', icon: 'mdi:radiator' }),
   E('switch.aquarium', 'unavailable', { friendly_name: 'Aquarium pump' }),
@@ -247,9 +260,9 @@ const states = Object.fromEntries([
   E('climate.living', 'heat', { friendly_name: 'Living thermostat', current_temperature: 21.4, temperature: 22.5, min_temp: 7, max_temp: 35, target_temp_step: 0.5, hvac_modes: ['heat', 'cool', 'auto', 'off'], hvac_action: 'heating', supported_features: 385 }),
   E('climate.aircon', 'cool', { friendly_name: 'Bedroom AC', current_temperature: 26.8, temperature: 24, min_temp: 16, max_temp: 30, target_temp_step: 1, hvac_modes: ['cool', 'dry', 'fan_only', 'off'], hvac_action: 'cooling', supported_features: 385, icon: 'mdi:air-conditioner' }),
   E('climate.floor_heating', 'heat_cool', { friendly_name: 'Floor heating', current_temperature: 22.1, target_temp_low: 20, target_temp_high: 24, min_temp: 7, max_temp: 35, target_temp_step: 0.5, hvac_modes: ['heat_cool', 'off'], hvac_action: 'idle', supported_features: 386 }),
-  E('media_player.living_speaker', 'playing', { friendly_name: 'Living speaker', media_title: 'Midnight City', media_artist: 'M83', volume_level: 0.35, entity_picture: ART, supported_features: 84373 }),
-  E('media_player.kitchen_speaker', 'paused', { friendly_name: 'Kitchen speaker', media_title: 'Lo-fi beats to focus to', media_artist: 'Various', volume_level: 0.2, supported_features: 84373 }),
-  E('media_player.tv', 'off', { friendly_name: 'Living TV', supported_features: 84373, icon: 'mdi:television' }),
+  E('media_player.living_speaker', 'playing', { friendly_name: 'Living speaker', media_title: 'Midnight City', media_artist: 'M83', volume_level: 0.35, entity_picture: ART, supported_features: 609725, group_members: ['media_player.living_speaker', 'media_player.kitchen_speaker'] }),
+  E('media_player.kitchen_speaker', 'paused', { friendly_name: 'Kitchen speaker', media_title: 'Lo-fi beats to focus to', media_artist: 'Various', volume_level: 0.2, supported_features: 609725 }),
+  E('media_player.tv', 'on', { friendly_name: 'Living TV', supported_features: 609725, icon: 'mdi:television', source: 'Netflix', source_list: ['HDMI 1', 'Netflix', 'YouTube', 'Plex'], volume_level: 0.4 }),
   E('scene.movie_night', '2026-08-11T20:12:00Z', { friendly_name: 'Movie night', icon: 'mdi:movie-open' }),
   E('scene.good_morning', '2026-08-12T07:00:00Z', { friendly_name: 'Good morning', icon: 'mdi:weather-sunset-up' }),
   E('script.close_everything', 'off', { friendly_name: 'Close everything', icon: 'mdi:shield-home' }),
@@ -279,6 +292,18 @@ const states = Object.fromEntries([
   E('sensor.aircon_today', '1.24', { friendly_name: 'AC today', unit_of_measurement: 'kWh', device_class: 'energy' }),
   E('sensor.aircon_yesterday', '2.54', { friendly_name: 'AC yesterday', unit_of_measurement: 'kWh', device_class: 'energy' }),
   E('sensor.aircon_month', '33.1', { friendly_name: 'AC this month', unit_of_measurement: 'kWh', device_class: 'energy' }),
+  E('select.scene_mode', 'Movie', { friendly_name: 'Scene mode', options: ['Day', 'Movie', 'Night', 'Away'] }),
+  E('select.eq_preset', 'Flat', { friendly_name: 'EQ preset', options: ['Flat', 'Bass boost', 'Vocal', 'Classical', 'Rock', 'Jazz', 'Custom'] }),
+  E('number.target_brightness', '180', { friendly_name: 'Default brightness', min: 0, max: 255, step: 5, mode: 'box', unit_of_measurement: '' }),
+  E('input_number.fan_curve', '55', { friendly_name: 'Fan curve point', min: 0, max: 100, step: 1, mode: 'slider', unit_of_measurement: '%' }),
+  E('humidifier.bedroom', 'on', { friendly_name: 'Bedroom humidifier', humidity: 55, current_humidity: 48, min_humidity: 30, max_humidity: 80, available_modes: ['normal', 'eco', 'boost'], mode: 'normal' }),
+  E('automation.morning_routine', 'on', { friendly_name: 'Morning routine', last_triggered: new Date(Date.now() - 2 * 3600_000).toISOString() }),
+  E('automation.printer_fan', 'off', { friendly_name: 'Printer auto fan', last_triggered: new Date(Date.now() - 26 * 3600_000).toISOString() }),
+  E('sun.sun', 'above_horizon', { friendly_name: 'Sun', elevation: 34.2, azimuth: 210, next_rising: new Date(new Date().setHours(30, 12, 0, 0)).toISOString(), next_setting: new Date(new Date().setHours(19, 48, 0, 0)).toISOString() }),
+  E('calendar.family', 'on', { friendly_name: 'Family' }),
+  E('sensor.door_lqi', '132', { friendly_name: 'Door LQI' }),
+  E('sensor.door_last_seen', new Date(Date.now() - 3 * 3600_000).toISOString(), { friendly_name: 'Door last seen', device_class: 'timestamp' }),
+  E('sensor.motion_lqi', '87', { friendly_name: 'Motion LQI' }),
   E('sensor.remote_battery', '45', { friendly_name: 'TV remote', unit_of_measurement: '%', device_class: 'battery' }),
   E('sensor.door_battery', '5', { friendly_name: 'Door sensor', unit_of_measurement: '%', device_class: 'battery' }),
   E('sensor.motion_battery', '100', { friendly_name: 'Motion sensor', unit_of_measurement: '%', device_class: 'battery' }),
@@ -354,7 +379,55 @@ const hassBase = {
       bump(id, String(TODO_ITEMS.filter((t) => t.status === 'needs_action').length), {});
     }
     else if (service === 'set_value') bump(id, String(data.value));
+    else if (service === 'select_option') bump(id, data.option);
+    else if (service === 'set_humidity') bump(id, null, { humidity: data.humidity });
+    else if (service === 'set_mode') bump(id, null, { mode: data.mode });
+    else if (service === 'trigger') bump(id, null, { last_triggered: new Date().toISOString() });
+    else if (service === 'select_source') bump(id, null, { source: data.source });
+    else if (service === 'volume_up' || service === 'volume_down') {
+      const v = states[id].attributes.volume_level ?? 0.3;
+      bump(id, null, { volume_level: Math.min(1, Math.max(0, v + (service === 'volume_up' ? 0.05 : -0.05))) });
+    }
+    else if (service === 'volume_mute') bump(id, null, { is_volume_muted: data.is_volume_muted });
+    else if (service === 'join') {
+      const members = new Set(states[id].attributes.group_members ?? [id]);
+      for (const m of data.group_members ?? []) members.add(m);
+      bump(id, null, { group_members: [...members] });
+    }
+    else if (service === 'unjoin') {
+      for (const master of Object.keys(states)) {
+        const gm = states[master].attributes.group_members;
+        if (Array.isArray(gm) && gm.includes(id)) bump(master, null, { group_members: gm.filter((m) => m !== id) });
+      }
+    }
+    else if (service === 'dismiss') {
+      NOTIFS = NOTIFS.filter((n) => n.notification_id !== data.notification_id);
+    }
     push();
+  },
+  async callApi(method, path) {
+    await new Promise((r) => setTimeout(r, 80));
+    if (path.startsWith('calendars/')) {
+      const day = 86400_000;
+      const at = (d, h, m = 0) => new Date(new Date(Date.now() + d * day).setHours(h, m, 0, 0)).toISOString();
+      return [
+        { summary: 'Standup meeting', start: { dateTime: at(0, 10) }, end: { dateTime: at(0, 10, 30) } },
+        { summary: 'Filament delivery', start: { date: new Date(Date.now() + day).toISOString().slice(0, 10) }, end: { date: new Date(Date.now() + 2 * day).toISOString().slice(0, 10) } },
+        { summary: 'Dinner with family', start: { dateTime: at(1, 19) }, end: { dateTime: at(1, 21) } },
+        { summary: 'Server maintenance window', start: { dateTime: at(3, 2) }, end: { dateTime: at(3, 4) } },
+      ];
+    }
+    if (path.startsWith('logbook/')) {
+      const ago = (m) => new Date(Date.now() - m * 60000).toISOString();
+      return [
+        { when: ago(12), state: 'on', name: 'Espresso machine' },
+        { when: ago(95), state: 'off', name: 'Espresso machine' },
+        { when: ago(180), state: 'on', name: 'Espresso machine' },
+        { when: ago(260), state: 'unavailable', name: 'Espresso machine' },
+        { when: ago(270), state: 'on', name: 'Espresso machine' },
+      ];
+    }
+    throw new Error('unmocked API: ' + path);
   },
   connection: {
     async subscribeMessage(cb, msg) {
@@ -379,11 +452,18 @@ const hassBase = {
     if (msg.type === 'todo/item/list') {
       return { items: TODO_ITEMS.map((t) => ({ ...t })) };
     }
+    if (msg.type === 'persistent_notification/get') {
+      return NOTIFS.map((n) => ({ ...n }));
+    }
     if (msg.type === 'recorder/statistics_during_period') {
+      const step = msg.period === 'day' ? 86400 : 3600;
       return Object.fromEntries(msg.statistic_ids.map((id) => {
         if (!SENSORS[id]) return [id, []];
         const rows = [];
-        for (let t = start; t <= end; t += 3600) rows.push({ start: t * 1000, mean: valueAt(id, t) });
+        for (let t = start; t <= end; t += step) {
+          const mean = valueAt(id, t + step / 2);
+          rows.push({ start: t * 1000, mean, change: Math.abs(mean) / 40 });
+        }
         return [id, rows];
       }));
     }
@@ -526,6 +606,60 @@ const SECTIONS = [
   ['Energy & To-do', [
     ['h2x', { type: 'custom:silk-energy-card', name: 'Aircon', icon: 'mdi:air-conditioner', power: 'sensor.aircon_power', today: 'sensor.aircon_today', yesterday: 'sensor.aircon_yesterday', month: 'sensor.aircon_month' }],
     ['h2x', { type: 'custom:silk-todo-card', entity: 'todo.groceries' }],
+  ]],
+  ['Layout & Navigation', [
+    ['h2x', { type: 'custom:silk-welcome-card', name: 'Hueeng', weather: 'weather.home', count_active: ['light.living_spot', 'light.hallway', 'light.closet', 'switch.espresso'] }],
+    ['', { type: 'custom:silk-navbar-card', items: [{ icon: 'mdi:home', path: '/demo/', label: 'Home' }, { icon: 'mdi:chart-box-outline', path: '/graphs', label: 'Graphs' }, { icon: 'mdi:view-dashboard', path: '/rooms', label: 'Rooms', badge_entity: 'sensor.co2' }, { icon: 'mdi:cog', path: '/settings', label: 'Settings' }], show_labels: true }],
+    ['', { type: 'custom:silk-heading-card', heading: 'Living room', icon: 'mdi:sofa', chips: ['sensor.living_temp', 'sensor.humidity'] }],
+    ['', { type: 'custom:silk-divider-card', label: 'Upstairs' }],
+  ]],
+  ['Clock & Sun', [
+    ['sq', { type: 'custom:silk-clock-card' }],
+    ['sq', { type: 'custom:silk-clock-card', style: 'analog', show_seconds: true }],
+    ['sq', { type: 'custom:silk-sun-card' }],
+  ]],
+  ['Dial, Color & Humidity', [
+    ['h4x', { type: 'custom:silk-dial-card', entity: 'climate.living' }],
+    ['h4x', { type: 'custom:silk-color-card', entity: 'light.tv_ambient' }],
+    ['', { type: 'custom:silk-humidifier-card', entity: 'humidifier.bedroom' }],
+  ]],
+  ['Remote & Speaker Group', [
+    ['h4x', { type: 'custom:silk-remote-card', entity: 'media_player.tv' }],
+    ['h3x', { type: 'custom:silk-media-group-card', entity: 'media_player.living_speaker', players: ['media_player.kitchen_speaker', 'media_player.tv'] }],
+  ]],
+  ['Select, Number & Keypad', [
+    ['', { type: 'custom:silk-select-card', entity: 'select.scene_mode' }],
+    ['', { type: 'custom:silk-select-card', entity: 'select.eq_preset' }],
+    ['', { type: 'custom:silk-number-card', entity: 'number.target_brightness' }],
+    ['h2x', { type: 'custom:silk-number-card', entity: 'input_number.fan_curve' }],
+    ['h4x', { type: 'custom:silk-keypad-card', title: 'Guest code', action: { service: 'script.turn_on', data: { entity_id: 'script.close_everything' } } }],
+  ]],
+  ['Air, Compare & Network', [
+    ['h2x', { type: 'custom:silk-aqi-card', entities: { co2: 'sensor.co2', humidity: 'sensor.humidity' } }],
+    ['h2x', { type: 'custom:silk-compare-card', entity: 'sensor.living_temp', entity2: 'sensor.outdoor_temp', label: 'Inside', label2: 'Outside' }],
+    ['h2x', { type: 'custom:silk-network-card', download: 'sensor.net_down', upload: 'sensor.net_up' }],
+  ]],
+  ['Heatmap, Week & Range', [
+    ['h3x', { type: 'custom:silk-heatmap-card', entity: 'sensor.house_power' }],
+    ['h2x', { type: 'custom:silk-week-card', entity: 'sensor.house_power', name: 'Power by day' }],
+    ['h2x', { type: 'custom:silk-minmax-card', entity: 'sensor.living_temp' }],
+  ]],
+  ['Agenda & Countdown', [
+    ['h3x', { type: 'custom:silk-calendar-card', entities: 'calendar.family' }],
+    ['sq', { type: 'custom:silk-countdown-card', name: 'Chuseok trip', date: '2026-09-24' }],
+    ['sq', { type: 'custom:silk-countdown-card', name: 'Silk launch', date: '2026-08-12' }],
+  ]],
+  ['Automation, Log & Inbox', [
+    ['', { type: 'custom:silk-automation-card', entity: 'automation.morning_routine' }],
+    ['', { type: 'custom:silk-automation-card', entity: 'automation.printer_fan' }],
+    ['h3x', { type: 'custom:silk-log-card', entity: 'switch.espresso' }],
+    ['h3x', { type: 'custom:silk-notify-card' }],
+    ['sq', { type: 'custom:silk-counter-card', name: 'Lights on', icon: 'mdi:lightbulb', entities: ['light.living_spot', 'light.hallway', 'light.closet', 'light.desk_lamp', 'light.bedroom_main'] }],
+  ]],
+  ['Devices, Family & Shutter', [
+    ['h3x', { type: 'custom:silk-device-card', name: 'Zigbee fleet', devices: [{ name: 'Door sensor', battery: 'sensor.door_battery', signal: 'sensor.door_lqi', last_seen: 'sensor.door_last_seen' }, { name: 'Motion sensor', battery: 'sensor.motion_battery', signal: 'sensor.motion_lqi' }, { name: 'Wall button', battery: 'sensor.button_battery' }] }],
+    ['', { type: 'custom:silk-presence-card', entities: ['person.hueeng', 'person.guest'] }],
+    ['h3x', { type: 'custom:silk-shutter-card', entity: 'cover.living_blinds' }],
   ]],
 ];
 

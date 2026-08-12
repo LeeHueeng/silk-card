@@ -23,19 +23,19 @@
 - **긴 범위도 그냥 동작** — 짧은 창은 원시 히스토리를, 긴 창은 Home Assistant 장기 통계를 자동으로 사용합니다. recorder가 오래된 데이터를 지워도 1개월 그래프가 나옵니다.
 - **초경량** — 차트 라이브러리 없이 SVG를 직접 렌더링. 작은 JS 파일 하나가 전부입니다.
 
-## 카드 31종
+## 카드 61종
 
 타입은 전부 `custom:silk-<이름>-card` 패턴입니다 (그래프만 `custom:silk-card`).
 
 | 분류 | 카드 |
 | --- | --- |
-| 컨트롤 | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum |
-| 물리 컨트롤 | **Rocker**(벽 스위치) · **Push**(푸시버튼) · **Knob**(돌리는 다이얼) · **Fader**(세로 슬라이더) |
-| 데이터 | Graph · Tile · Gauge · Bar · Ring · Status(가동률 타임라인) · Progress · Energy |
-| 정보 | Weather · Person · Camera · Room · Chips · Battery · Updates |
-| 액션·기타 | Button · Alarm(키패드 포함) · Timer · To-do |
+| 컨트롤 | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum · Humidifier · Select · Number · Remote(TV 리모컨) · Media Group(스피커 그룹) · Shutter · Color(컬러 휠) |
+| 물리 컨트롤 | **Rocker**(벽 스위치) · **Push**(푸시버튼) · **Knob**(돌리는 다이얼) · **Fader**(세로 슬라이더) · **Dial**(Nest식 온도 다이얼) · **Keypad**(PIN 패드) |
+| 데이터 | Graph · Tile · Gauge · Bar · Ring · Status(가동률) · Progress · Energy · Heatmap(7일×24시간) · Week(일별 막대) · Network(↓↑ 미러) · Compare · Range(일 최저·최고) · Sun(일출·일몰 궤적) |
+| 정보 | Weather · Person · Camera · Room · Chips · Battery · Updates · Welcome(인사 헤더) · Clock · Family(재실 스트립) · Device(지그비 상태) · Count · Air(공기질) · Agenda(일정) · Inbox(알림함) |
+| 액션·레이아웃 | Button · Alarm(키패드) · Timer · To-do · Automation · Log · Countdown(D-day) · **Pop-up**(해시 팝업) · Navbar · Heading · Divider |
 
-전체 갤러리(90+ 변형): [docs/gallery.png](docs/gallery.png) · 로컬에서 만져보기: `npm run demo`
+전체 갤러리(120+ 변형): [docs/gallery.png](docs/gallery.png) · 로컬에서 만져보기: `npm run demo`
 
 ## 설치
 

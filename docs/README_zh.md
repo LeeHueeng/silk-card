@@ -23,19 +23,19 @@
 - **长时间范围开箱即用** — 短窗口使用原始历史数据；长窗口自动切换到 Home Assistant 长期统计数据，即使 recorder 清除了旧数据，一个月的曲线也照常显示。
 - **极致轻量** — 手写 SVG 渲染，不依赖任何图表库。只有一个小小的 JS 文件。
 
-## 31 种卡片
+## 61 种卡片
 
 所有类型均为 `custom:silk-<名称>-card`（仅曲线卡为 `custom:silk-card`）。
 
 | 分类 | 卡片 |
 | --- | --- |
-| 控制 | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum |
-| 实体感控制 | **Rocker**（墙壁开关）· **Push**（按压按钮）· **Knob**（旋钮）· **Fader**（竖向推子） |
-| 数据 | Graph · Tile · Gauge · Bar · Ring · Status（在线率时间线）· Progress · Energy |
-| 信息一览 | Weather · Person · Camera · Room · Chips · Battery · Updates |
-| 动作及其他 | Button · Alarm（含键盘）· Timer · To-do |
+| 控制 | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum · Humidifier · Select · Number · Remote（电视遥控）· Media Group（音箱编组）· Shutter · Color（色轮） |
+| 实体感控制 | **Rocker**（墙壁开关）· **Push**（按压按钮）· **Knob**（旋钮）· **Fader**（竖向推子）· **Dial**（Nest 式温控转盘）· **Keypad**（密码键盘） |
+| 数据 | Graph · Tile · Gauge · Bar · Ring · Status（在线率）· Progress · Energy · Heatmap（7天×24时）· Week（逐日柱状）· Network（↓↑ 镜像）· Compare · Range（当日高低）· Sun（日出日落弧线） |
+| 信息一览 | Weather · Person · Camera · Room · Chips · Battery · Updates · Welcome（问候页头）· Clock · Family（在家状态条）· Device（Zigbee 健康）· Count · Air（空气质量）· Agenda（日程）· Inbox（通知中心） |
+| 动作与布局 | Button · Alarm（键盘）· Timer · To-do · Automation · Log · Countdown（倒数日）· **Pop-up**（哈希弹窗）· Navbar · Heading · Divider |
 
-完整画廊（90+ 变体）：[gallery.png](gallery.png) · 本地体验：`npm run demo`
+完整画廊（120+ 变体）：[gallery.png](gallery.png) · 本地体验：`npm run demo`
 
 ## 安装
 

@@ -23,19 +23,19 @@ Existing graph cards make you choose: minimal but frozen in time, or powerful bu
 - **Long ranges that just work** — short windows use raw history; longer windows automatically switch to Home Assistant long-term statistics, so a 1-month graph works even after the recorder purges.
 - **Tiny** — hand-rolled SVG rendering, no charting library. One small JS file.
 
-## The 31 cards
+## The 61 cards
 
 Every type follows `custom:silk-<name>-card` (the graph alone is `custom:silk-card`).
 
 | Category | Cards |
 | --- | --- |
-| Controls | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum |
-| Physical | **Rocker** (wall switch) · **Push** (push button) · **Knob** (rotary dial) · **Fader** (vertical slider) |
-| Data | Graph · Tile · Gauge · Bar · Ring · Status (uptime timeline) · Progress · Energy |
-| Glance | Weather · Person · Camera · Room · Chips · Battery · Updates |
-| Actions & more | Button · Alarm (with keypad) · Timer · To-do |
+| Controls | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum · Humidifier · Select · Number · Remote (TV) · Media Group (speakers) · Shutter · Color (HS wheel) |
+| Physical | **Rocker** (wall switch) · **Push** (push button) · **Knob** (rotary dial) · **Fader** (vertical slider) · **Dial** (Nest-style thermostat) · **Keypad** (PIN pad) |
+| Data | Graph · Tile · Gauge · Bar · Ring · Status (uptime) · Progress · Energy · Heatmap (7d×24h) · Week (daily bars) · Network (mirrored ↓↑) · Compare · Range (daily min/max) · Sun (horizon arc) |
+| Glance | Weather · Person · Camera · Room · Chips · Battery · Updates · Welcome (greeting header) · Clock · Family (presence strip) · Device (Zigbee health) · Count · Air (AQI) · Agenda · Inbox (notifications) |
+| Actions & layout | Button · Alarm (keypad) · Timer · To-do · Automation · Log · Countdown (D-day) · **Pop-up** (hash-based) · Navbar · Heading · Divider |
 
-Full gallery (90+ variants): [gallery.png](gallery.png) · Try it locally: `npm run demo`
+Full gallery (120+ variants): [gallery.png](gallery.png) · Try it locally: `npm run demo`
 
 ## Install
 

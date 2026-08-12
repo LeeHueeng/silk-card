@@ -23,19 +23,19 @@
 - **長期間もそのまま動く** — 短い窓は生の履歴を、長い窓は Home Assistant の長期統計を自動的に使用。recorder が古いデータを消しても 1 ヶ月グラフが表示されます。
 - **超軽量** — チャートライブラリなしの手書き SVG レンダリング。小さな JS ファイル 1 つだけ。
 
-## 31 種類のカード
+## 61 種類のカード
 
 タイプはすべて `custom:silk-<名前>-card` パターンです（グラフのみ `custom:silk-card`）。
 
 | カテゴリ | カード |
 | --- | --- |
-| コントロール | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum |
-| フィジカル | **Rocker**（壁スイッチ）· **Push**（押しボタン）· **Knob**（回すダイヤル）· **Fader**（縦スライダー） |
-| データ | Graph · Tile · Gauge · Bar · Ring · Status（稼働率タイムライン）· Progress · Energy |
-| 一目情報 | Weather · Person · Camera · Room · Chips · Battery · Updates |
-| アクションほか | Button · Alarm（キーパッド付き）· Timer · To-do |
+| コントロール | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum · Humidifier · Select · Number · Remote（TV リモコン）· Media Group（スピーカーグループ）· Shutter · Color（カラーホイール） |
+| フィジカル | **Rocker**（壁スイッチ）· **Push**（押しボタン）· **Knob**（ダイヤル）· **Fader**（縦スライダー）· **Dial**（Nest 風サーモダイヤル）· **Keypad**（PIN パッド） |
+| データ | Graph · Tile · Gauge · Bar · Ring · Status（稼働率）· Progress · Energy · Heatmap（7日×24時間）· Week(日別バー) · Network（↓↑ ミラー）· Compare · Range（日次高低）· Sun（日の出入りアーク） |
+| 一目情報 | Weather · Person · Camera · Room · Chips · Battery · Updates · Welcome（挨拶ヘッダー）· Clock · Family（在宅ストリップ）· Device（Zigbee ヘルス）· Count · Air（空気質）· Agenda（予定）· Inbox（通知） |
+| アクション・レイアウト | Button · Alarm（キーパッド）· Timer · To-do · Automation · Log · Countdown（D-day）· **Pop-up**（ハッシュ式）· Navbar · Heading · Divider |
 
-ギャラリー全体（90+ バリエーション）: [gallery.png](gallery.png) · ローカルで試す: `npm run demo`
+ギャラリー全体（120+ バリエーション）: [gallery.png](gallery.png) · ローカルで試す: `npm run demo`
 
 ## インストール
 
