@@ -23,23 +23,19 @@
 - **長期間もそのまま動く** — 短い窓は生の履歴を、長い窓は Home Assistant の長期統計を自動的に使用。recorder が古いデータを消しても 1 ヶ月グラフが表示されます。
 - **超軽量** — チャートライブラリなしの手書き SVG レンダリング。小さな JS ファイル 1 つだけ。
 
-## カード一覧
+## 31 種類のカード
 
-| カード | タイプ | ひとこと |
-| --- | --- | --- |
-| Graph | `custom:silk-card` | なぞって読める・モーフィングする履歴グラフ |
-| Toggle | `custom:silk-toggle-card` | 本物のスイッチ付きオン/オフ行 |
-| Light | `custom:silk-light-card` | カードのどこをドラッグしても調光 |
-| Tile | `custom:silk-tile-card` | スパークライン + しきい値カラーのセンサータイル |
-| Gauge | `custom:silk-gauge-card` | 値までスッと動くアークゲージ |
-| Climate | `custom:silk-climate-card` | 現在・目標・モードをひとつのブロックに |
-| Cover | `custom:silk-cover-card` | ドラッグで位置を決めるブラインド |
-| Fan | `custom:silk-fan-card` | 速度スライダーと本当に回るアイコン |
-| Button | `custom:silk-button-card` | 物理ボタンの手応えのシーン/スクリプト |
-| Media | `custom:silk-media-card` | アートワーク主役のメディア操作 |
-| Room | `custom:silk-room-card` | 部屋を一行で: センサー + クイック操作 |
+タイプはすべて `custom:silk-<名前>-card` パターンです（グラフのみ `custom:silk-card`）。
 
-ギャラリー全体: [gallery.png](gallery.png) · ローカルで試す: `npm run demo`
+| カテゴリ | カード |
+| --- | --- |
+| コントロール | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum |
+| フィジカル | **Rocker**（壁スイッチ）· **Push**（押しボタン）· **Knob**（回すダイヤル）· **Fader**（縦スライダー） |
+| データ | Graph · Tile · Gauge · Bar · Ring · Status（稼働率タイムライン）· Progress · Energy |
+| 一目情報 | Weather · Person · Camera · Room · Chips · Battery · Updates |
+| アクションほか | Button · Alarm（キーパッド付き）· Timer · To-do |
+
+ギャラリー全体（90+ バリエーション）: [gallery.png](gallery.png) · ローカルで試す: `npm run demo`
 
 ## インストール
 

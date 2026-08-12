@@ -23,23 +23,19 @@ Existing graph cards make you choose: minimal but frozen in time, or powerful bu
 - **Long ranges that just work** — short windows use raw history; longer windows automatically switch to Home Assistant long-term statistics, so a 1-month graph works even after the recorder purges.
 - **Tiny** — hand-rolled SVG rendering, no charting library. One small JS file.
 
-## The cards
+## The 31 cards
 
-| Card | Type | One-liner |
-| --- | --- | --- |
-| Graph | `custom:silk-card` | Scrub-and-morph interactive history graph |
-| Toggle | `custom:silk-toggle-card` | A crisp on/off row with a real switch |
-| Light | `custom:silk-light-card` | Drag anywhere on the card to dim |
-| Tile | `custom:silk-tile-card` | Sensor tile with sparkline + threshold colors |
-| Gauge | `custom:silk-gauge-card` | An arc gauge that animates to its value |
-| Climate | `custom:silk-climate-card` | Current, target, and modes in one block |
-| Cover | `custom:silk-cover-card` | Blinds with drag-anywhere position |
-| Fan | `custom:silk-fan-card` | Speed slider and an icon that actually spins |
-| Button | `custom:silk-button-card` | Scenes and scripts that feel physical |
-| Media | `custom:silk-media-card` | Artwork-first now playing |
-| Room | `custom:silk-room-card` | A room at a glance: sensors + quick controls |
+Every type follows `custom:silk-<name>-card` (the graph alone is `custom:silk-card`).
 
-Full gallery: [gallery.png](gallery.png) · Try it locally: `npm run demo`
+| Category | Cards |
+| --- | --- |
+| Controls | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum |
+| Physical | **Rocker** (wall switch) · **Push** (push button) · **Knob** (rotary dial) · **Fader** (vertical slider) |
+| Data | Graph · Tile · Gauge · Bar · Ring · Status (uptime timeline) · Progress · Energy |
+| Glance | Weather · Person · Camera · Room · Chips · Battery · Updates |
+| Actions & more | Button · Alarm (with keypad) · Timer · To-do |
+
+Full gallery (90+ variants): [gallery.png](gallery.png) · Try it locally: `npm run demo`
 
 ## Install
 

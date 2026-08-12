@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>setConfig test</title></head>
+<body>
+<pre id="out"></pre>
+<script type="module">
+import '../dist/silk-card.js';
+
+const P1S = 'p1s_01p00c580400941';
+const CONFIGS = [
+  { type: 'custom:silk-card', name: '3D프린터 온도', entities: [
+    { entity: `sensor.${P1S}_nozzle_temperature`, name: '노즐' },
+    { entity: `sensor.${P1S}_bed_temperature`, name: '베드', color: '#ef6c6c' }] },
+  { type: 'custom:silk-card', entity: 'sensor.peurinteo_hwanpunggi_power', color: '#5ec78d' },
+  { type: 'custom:silk-toggle-card', entity: 'switch.peurinteo_hwanpunggi' },
+  { type: 'custom:silk-toggle-card', entity: 'switch.peurinteo_konsenteu', confirm: true },
+  { type: 'custom:silk-light-card', entity: `light.${P1S}_chamber_light` },
+  { type: 'custom:silk-media-card', entity: 'media_player.heobeu' },
+  { type: 'custom:silk-tile-card', entity: `sensor.${P1S}_nozzle_temperature`,
+    thresholds: [{ value: 0, color: '#4aa8ff' }, { value: 50, color: '#e6a23c' }, { value: 200, color: '#ef6c6c' }] },
+  { type: 'custom:silk-gauge-card', entity: `sensor.${P1S}_print_progress`, name: '출력 진행률' },
+  { type: 'custom:silk-gauge-card', entity: 'sensor.iphone_battery_level', name: '아이폰',
+    segments: [{ from: 0, color: '#ef6c6c' }, { from: 25, color: '#e6a23c' }, { from: 50, color: '#5ec78d' }] },
+  { type: 'custom:silk-fan-card', entity: `fan.${P1S}_cooling_fan` },
+  { type: 'custom:silk-button-card', entity: 'scene.bulkyeogi' },
+  { type: 'custom:silk-button-card', entity: 'button.zigbee2mqtt_bridge_restart', confirm: true },
+  { type: 'custom:silk-room-card', name: '3D프린터', icon: 'mdi:printer-3d',
+    sensors: [`sensor.${P1S}_ams_1_temperature`, `sensor.${P1S}_ams_1_humidity`],
+    toggles: [`light.${P1S}_chamber_light`, `fan.${P1S}_cooling_fan`, 'switch.peurinteo_hwanpunggi'],
+    count_active: [`fan.${P1S}_cooling_fan`] },
+  { type: 'custom:silk-room-card', name: '홈랩', icon: 'mdi:server', color: '#6c8dd6',
+    sensors: ['sensor.homelab_cpu_load'] },
+];
+
+const out = [];
+for (const config of CONFIGS) {
+  const tag = config.type.replace('custom:', '');
+  if (!customElements.get(tag)) { out.push(`MISSING-ELEMENT ${tag}`); continue; }
+  const el = document.createElement(tag);
+  try {
+    el.setConfig(config);
+    out.push(`OK ${tag} (${config.entity ?? config.name})`);
+  } catch (e) {
+    out.push(`SETCONFIG-FAIL ${tag} (${config.entity ?? config.name}): ${e.message}`);
+  }
+}
+document.getElementById('out').textContent = out.join('\n');
+</script>
+</body>
+</html>

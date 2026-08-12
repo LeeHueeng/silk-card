@@ -10,10 +10,34 @@ import { META as FAN } from './cards/fan';
 import { META as BUTTON } from './cards/action';
 import { META as MEDIA } from './cards/media';
 import { META as ROOM } from './cards/room';
+import { META as ROCKER } from './cards/rocker';
+import { META as PUSH } from './cards/push';
+import { META as KNOB } from './cards/knob';
+import { META as FADER } from './cards/fader';
+import { META as WEATHER } from './cards/weather';
+import { META as PERSON } from './cards/person';
+import { META as LOCK } from './cards/lock';
+import { META as ALARM } from './cards/alarm';
+import { META as VACUUM } from './cards/vacuum';
+import { META as CAMERA } from './cards/camera';
+import { META as TIMER } from './cards/timer';
+import { META as PROGRESS } from './cards/progress';
+import { META as UPDATE } from './cards/update';
+import { META as BATTERY } from './cards/battery';
+import { META as STATUS } from './cards/status';
+import { META as CHIPS } from './cards/chips';
+import { META as BAR } from './cards/bar';
+import { META as RING } from './cards/ring';
+import { META as ENERGY } from './cards/energy';
+import { META as TODO } from './cards/todo';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 
-const CARDS = [GRAPH, TOGGLE, LIGHT, TILE, GAUGE, CLIMATE, COVER, FAN, BUTTON, MEDIA, ROOM];
+const CARDS = [
+  GRAPH, TOGGLE, LIGHT, TILE, GAUGE, CLIMATE, COVER, FAN, BUTTON, MEDIA, ROOM,
+  ROCKER, PUSH, KNOB, FADER, WEATHER, PERSON, LOCK, ALARM, VACUUM, CAMERA,
+  TIMER, PROGRESS, UPDATE, BATTERY, STATUS, CHIPS, BAR, RING, ENERGY, TODO,
+];
 
 declare global {
   interface Window {

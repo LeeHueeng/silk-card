@@ -23,23 +23,19 @@
 - **长时间范围开箱即用** — 短窗口使用原始历史数据；长窗口自动切换到 Home Assistant 长期统计数据，即使 recorder 清除了旧数据，一个月的曲线也照常显示。
 - **极致轻量** — 手写 SVG 渲染，不依赖任何图表库。只有一个小小的 JS 文件。
 
-## 卡片一览
+## 31 种卡片
 
-| 卡片 | 类型 | 一句话 |
-| --- | --- | --- |
-| Graph | `custom:silk-card` | 可拖动读数、平滑变形的历史曲线 |
-| Toggle | `custom:silk-toggle-card` | 带真实开关的开/关行 |
-| Light | `custom:silk-light-card` | 在卡片任意位置拖动调光 |
-| Tile | `custom:silk-tile-card` | 带迷你曲线和阈值配色的传感器磁贴 |
-| Gauge | `custom:silk-gauge-card` | 平滑动画的弧形仪表 |
-| Climate | `custom:silk-climate-card` | 当前温度、目标温度、模式一目了然 |
-| Cover | `custom:silk-cover-card` | 拖动定位的窗帘/百叶 |
-| Fan | `custom:silk-fan-card` | 速度滑条 + 真正会转的图标 |
-| Button | `custom:silk-button-card` | 手感如物理按键的场景/脚本 |
-| Media | `custom:silk-media-card` | 封面优先的媒体控制 |
-| Room | `custom:silk-room-card` | 一行看清一个房间：传感器 + 快捷控制 |
+所有类型均为 `custom:silk-<名称>-card`（仅曲线卡为 `custom:silk-card`）。
 
-完整画廊：[gallery.png](gallery.png) · 本地体验：`npm run demo`
+| 分类 | 卡片 |
+| --- | --- |
+| 控制 | Toggle · Light · Cover · Fan · Climate · Media · Lock · Vacuum |
+| 实体感控制 | **Rocker**（墙壁开关）· **Push**（按压按钮）· **Knob**（旋钮）· **Fader**（竖向推子） |
+| 数据 | Graph · Tile · Gauge · Bar · Ring · Status（在线率时间线）· Progress · Energy |
+| 信息一览 | Weather · Person · Camera · Room · Chips · Battery · Updates |
+| 动作及其他 | Button · Alarm（含键盘）· Timer · To-do |
+
+完整画廊（90+ 变体）：[gallery.png](gallery.png) · 本地体验：`npm run demo`
 
 ## 安装
 

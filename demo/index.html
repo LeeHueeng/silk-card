@@ -82,6 +82,9 @@ const DOMAIN_ICONS = {
   media_player: 'mdi:speaker', lock: 'mdi:lock', scene: 'mdi:palette',
   script: 'mdi:script-text', button: 'mdi:gesture-tap-button', input_button: 'mdi:gesture-tap-button',
   person: 'mdi:account', vacuum: 'mdi:robot-vacuum',
+  weather: 'mdi:weather-partly-cloudy', timer: 'mdi:timer-outline', update: 'mdi:update',
+  todo: 'mdi:clipboard-list-outline', alarm_control_panel: 'mdi:shield',
+  binary_sensor: 'mdi:radiobox-marked', camera: 'mdi:video', number: 'mdi:ray-vertex',
 };
 const CLASS_ICONS = {
   temperature: 'mdi:thermometer', humidity: 'mdi:water-percent', power: 'mdi:flash',
@@ -169,6 +172,50 @@ const ART = 'data:image/svg+xml;base64,' + btoa(
   '<circle cx="60" cy="28" r="24" fill="#4aa8ff" opacity="0.85"/></svg>'
 );
 
+const ART2 = 'data:image/svg+xml;base64,' + btoa(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">' +
+  '<rect width="320" height="180" fill="#171b24"/><circle cx="268" cy="36" r="14" fill="#dfe6f2" opacity="0.9"/>' +
+  '<rect x="30" y="90" width="120" height="90" fill="#232a38"/><rect x="60" y="118" width="28" height="62" fill="#101420"/>' +
+  '<rect x="170" y="110" width="120" height="8" fill="#2b3446"/><rect x="0" y="168" width="320" height="12" fill="#0c0f16"/>' +
+  '<circle cx="74" cy="106" r="3" fill="#f0b357"/></svg>'
+);
+
+let TODO_ITEMS = [
+  { uid: 't1', summary: '우유 사기', status: 'needs_action' },
+  { uid: 't2', summary: '커피 원두 주문', status: 'needs_action' },
+  { uid: 't3', summary: 'PLA 필라멘트 재고 확인', status: 'needs_action' },
+  { uid: 't4', summary: '세제 리필', status: 'completed' },
+];
+
+function hourlyForecast() {
+  const conds = ['partlycloudy', 'cloudy', 'rainy', 'rainy', 'cloudy', 'partlycloudy'];
+  const base = Date.now();
+  return conds.map((condition, i) => ({
+    datetime: new Date(base + (i + 1) * 3600_000).toISOString(),
+    condition,
+    temperature: Math.round((27.4 - i * 0.8 + (i > 3 ? 1 : 0)) * 10) / 10,
+  }));
+}
+
+function binHistory(id, start, end) {
+  const rows = [];
+  const span = end - start;
+  if (id === 'binary_sensor.server_ok') {
+    rows.push({ s: 'on', lu: start });
+    rows.push({ s: 'off', lu: start + span * 0.42 });
+    rows.push({ s: 'on', lu: start + span * 0.435 });
+    rows.push({ s: 'off', lu: start + span * 0.81 });
+    rows.push({ s: 'on', lu: start + span * 0.822 });
+  } else {
+    rows.push({ s: 'off', lu: start });
+    for (const [a, b] of [[0.12, 0.135], [0.31, 0.325], [0.55, 0.61], [0.9, 0.915]]) {
+      rows.push({ s: 'on', lu: start + span * a });
+      rows.push({ s: 'off', lu: start + span * b });
+    }
+  }
+  return rows;
+}
+
 const now = () => new Date().toISOString();
 const E = (id, state, attributes = {}) =>
   [id, { entity_id: id, state: String(state), attributes, last_changed: now(), last_updated: now() }];
@@ -207,6 +254,35 @@ const states = Object.fromEntries([
   E('scene.good_morning', '2026-08-12T07:00:00Z', { friendly_name: 'Good morning', icon: 'mdi:weather-sunset-up' }),
   E('script.close_everything', 'off', { friendly_name: 'Close everything', icon: 'mdi:shield-home' }),
   E('button.restart_router', '2026-08-12T01:00:00Z', { friendly_name: 'Restart router', icon: 'mdi:router-wireless' }),
+  E('weather.home', 'partlycloudy', { friendly_name: 'Home weather', temperature: 27.4, humidity: 62 }),
+  E('person.hueeng', 'home', { friendly_name: 'Hueeng' }),
+  E('person.guest', 'not_home', { friendly_name: 'Guest' }),
+  E('lock.front', 'locked', { friendly_name: 'Front door' }),
+  E('lock.storage', 'unlocked', { friendly_name: 'Storage' }),
+  E('alarm_control_panel.home', 'disarmed', { friendly_name: 'Home alarm', supported_features: 7 }),
+  E('alarm_control_panel.office', 'armed_home', { friendly_name: 'Office alarm', supported_features: 3, code_format: 'number' }),
+  E('vacuum.robot', 'cleaning', { friendly_name: 'Robot vacuum', battery_level: 80, fan_speed: 'medium', fan_speed_list: ['quiet', 'medium', 'max'], supported_features: 8756 }),
+  E('vacuum.upstairs', 'docked', { friendly_name: 'Upstairs vacuum', battery_level: 100, supported_features: 8756 }),
+  E('camera.porch', 'streaming', { friendly_name: 'Porch camera', entity_picture: '/demo/porch.svg?token=demo' }),
+  E('timer.laundry', 'active', { friendly_name: 'Laundry', duration: '0:45:00', finishes_at: new Date(Date.now() + 17 * 60000).toISOString(), icon: 'mdi:washing-machine' }),
+  E('timer.tea', 'idle', { friendly_name: 'Tea', duration: '0:04:00', icon: 'mdi:tea' }),
+  E('update.silk_card', 'on', { friendly_name: 'Silk Card', title: 'Silk Card', installed_version: '0.2.0', latest_version: '0.3.0' }),
+  E('update.core', 'on', { friendly_name: 'Home Assistant Core', title: 'Home Assistant Core', installed_version: '2026.8.1', latest_version: '2026.8.2' }),
+  E('update.zigbee2mqtt', 'off', { friendly_name: 'Zigbee2MQTT', title: 'Zigbee2MQTT', installed_version: '2.6.0', latest_version: '2.6.0' }),
+  E('todo.groceries', '3', { friendly_name: 'Groceries' }),
+  E('binary_sensor.server_ok', 'on', { friendly_name: 'Homelab reachable', icon: 'mdi:server-network' }),
+  E('binary_sensor.front_door', 'off', { friendly_name: 'Front door contact', device_class: 'door', icon: 'mdi:door' }),
+  E('sensor.print_progress', '41', { friendly_name: '3D print', unit_of_measurement: '%', icon: 'mdi:printer-3d' }),
+  E('sensor.print_remaining', '4.9', { friendly_name: 'Print remaining', unit_of_measurement: 'h' }),
+  E('sensor.backup_progress', '100', { friendly_name: 'NAS backup', unit_of_measurement: '%', icon: 'mdi:backup-restore' }),
+  E('sensor.aircon_power', '850', { friendly_name: 'AC power', unit_of_measurement: 'W', device_class: 'power' }),
+  E('sensor.aircon_today', '1.24', { friendly_name: 'AC today', unit_of_measurement: 'kWh', device_class: 'energy' }),
+  E('sensor.aircon_yesterday', '2.54', { friendly_name: 'AC yesterday', unit_of_measurement: 'kWh', device_class: 'energy' }),
+  E('sensor.aircon_month', '33.1', { friendly_name: 'AC this month', unit_of_measurement: 'kWh', device_class: 'energy' }),
+  E('sensor.remote_battery', '45', { friendly_name: 'TV remote', unit_of_measurement: '%', device_class: 'battery' }),
+  E('sensor.door_battery', '5', { friendly_name: 'Door sensor', unit_of_measurement: '%', device_class: 'battery' }),
+  E('sensor.motion_battery', '100', { friendly_name: 'Motion sensor', unit_of_measurement: '%', device_class: 'battery' }),
+  E('sensor.button_battery', '18', { friendly_name: 'Wall button', unit_of_measurement: '%', device_class: 'battery' }),
 ]);
 
 function genHistory(id, start, end, step) {
@@ -231,7 +307,7 @@ const hassBase = {
   locale: { language: 'en' },
   entities: {},
   formatEntityState(st) {
-    const map = { on: 'On', off: 'Off', open: 'Open', closed: 'Closed', locked: 'Locked', unlocked: 'Unlocked', playing: 'Playing', paused: 'Paused', heat: 'Heat', cool: 'Cool', heat_cool: 'Heat/Cool', auto: 'Auto', unavailable: 'Unavailable' };
+    const map = { on: 'On', off: 'Off', open: 'Open', closed: 'Closed', locked: 'Locked', unlocked: 'Unlocked', playing: 'Playing', paused: 'Paused', heat: 'Heat', cool: 'Cool', heat_cool: 'Heat/Cool', auto: 'Auto', unavailable: 'Unavailable', home: 'Home', not_home: 'Away', cleaning: 'Cleaning', docked: 'Docked', returning: 'Returning', disarmed: 'Disarmed', armed_home: 'Armed home', armed_away: 'Armed away', armed_night: 'Armed night', active: 'Running', idle: 'Idle', partlycloudy: 'Partly cloudy', streaming: 'Live' };
     return map[st.state] ?? st.state;
   },
   async callService(domain, service, data = {}) {
@@ -256,14 +332,52 @@ const hassBase = {
     else if (service === 'media_play_pause') bump(id, states[id].state === 'playing' ? 'paused' : 'playing');
     else if (service === 'media_next_track' || service === 'media_previous_track') bump(id, null, { media_title: service.includes('next') ? 'Next song' : 'Previous song' });
     else if (service === 'volume_set') bump(id, null, { volume_level: data.volume_level });
+    else if (service === 'lock') bump(id, 'locked');
+    else if (service === 'unlock') bump(id, 'unlocked');
+    else if (service === 'alarm_disarm') bump(id, 'disarmed');
+    else if (service === 'alarm_arm_home') bump(id, 'armed_home');
+    else if (service === 'alarm_arm_away') bump(id, 'armed_away');
+    else if (service === 'alarm_arm_night') bump(id, 'armed_night');
+    else if (service === 'start') bump(id, domain === 'vacuum' ? 'cleaning' : 'active', domain === 'timer' ? { finishes_at: new Date(Date.now() + 4 * 60000).toISOString() } : {});
+    else if (service === 'pause') bump(id, domain === 'vacuum' ? 'paused' : 'paused');
+    else if (service === 'cancel') bump(id, 'idle', { finishes_at: undefined });
+    else if (service === 'return_to_base') bump(id, 'returning');
+    else if (service === 'locate') { /* beep */ }
+    else if (service === 'set_fan_speed') bump(id, null, { fan_speed: data.fan_speed });
+    else if (service === 'install') {
+      bump(id, 'on', { in_progress: true });
+      setTimeout(() => { bump(id, 'off', { in_progress: false, installed_version: states[id].attributes.latest_version }); push(); }, 4000);
+    }
+    else if (service === 'update_item') {
+      const item = TODO_ITEMS.find((t) => t.uid === data.item || t.summary === data.item);
+      if (item) item.status = data.status;
+      bump(id, String(TODO_ITEMS.filter((t) => t.status === 'needs_action').length), {});
+    }
+    else if (service === 'set_value') bump(id, String(data.value));
     push();
+  },
+  connection: {
+    async subscribeMessage(cb, msg) {
+      if (msg.type === 'weather/subscribe_forecast') {
+        setTimeout(() => cb({ forecast: hourlyForecast() }), 150);
+        return () => {};
+      }
+      throw new Error('unmocked subscription: ' + msg.type);
+    },
   },
   async callWS(msg) {
     await new Promise((r) => setTimeout(r, 100));
     const start = Date.parse(msg.start_time) / 1000;
     const end = Date.parse(msg.end_time) / 1000;
     if (msg.type === 'history/history_during_period') {
-      return Object.fromEntries(msg.entity_ids.map((id) => [id, SENSORS[id] ? genHistory(id, start, end, Math.max((end - start) / 260, 30)) : []]));
+      return Object.fromEntries(msg.entity_ids.map((id) => {
+        if (SENSORS[id]) return [id, genHistory(id, start, end, Math.max((end - start) / 260, 30))];
+        if (id.startsWith('binary_sensor.')) return [id, binHistory(id, start, end)];
+        return [id, []];
+      }));
+    }
+    if (msg.type === 'todo/item/list') {
+      return { items: TODO_ITEMS.map((t) => ({ ...t })) };
     }
     if (msg.type === 'recorder/statistics_during_period') {
       return Object.fromEntries(msg.statistic_ids.map((id) => {
@@ -351,6 +465,67 @@ const SECTIONS = [
     ['', { type: 'custom:silk-room-card', name: 'Bedroom', icon: 'mdi:bed-king', sensors: ['sensor.bedroom_temp'], toggles: ['light.bedroom_main', 'fan.bedroom', 'cover.bedroom_curtain'], color: '#9d7ee8' }],
     ['', { type: 'custom:silk-room-card', name: 'Office', icon: 'mdi:desk', sensors: ['sensor.office_temp', 'sensor.cpu'], toggles: ['light.desk_lamp', 'switch.heater_plug'] }],
     ['', { type: 'custom:silk-room-card', name: 'Kitchen', icon: 'mdi:silverware-fork-knife', sensors: ['sensor.co2'], toggles: ['switch.espresso', 'media_player.kitchen_speaker'], color: '#e6a23c' }],
+  ]],
+  ['Physical — switches that feel real', [
+    ['sq', { type: 'custom:silk-rocker-card', entity: 'switch.espresso' }],
+    ['sq', { type: 'custom:silk-rocker-card', entity: 'switch.heater_plug' }],
+    ['sq', { type: 'custom:silk-rocker-card', entity: 'light.closet' }],
+    ['sq', { type: 'custom:silk-push-card', entity: 'scene.movie_night' }],
+    ['sq', { type: 'custom:silk-push-card', entity: 'script.close_everything' }],
+    ['sq', { type: 'custom:silk-push-card', entity: 'switch.heater_plug' }],
+  ]],
+  ['Knob & Fader — turn it, slide it', [
+    ['sq', { type: 'custom:silk-knob-card', entity: 'light.living_spot' }],
+    ['sq', { type: 'custom:silk-knob-card', entity: 'fan.bedroom' }],
+    ['sq', { type: 'custom:silk-knob-card', entity: 'media_player.living_speaker' }],
+    ['h3x', { type: 'custom:silk-fader-card', entity: 'light.hallway' }],
+    ['h3x', { type: 'custom:silk-fader-card', entity: 'cover.living_blinds' }],
+    ['h3x', { type: 'custom:silk-fader-card', entity: 'fan.air_purifier' }],
+  ]],
+  ['Weather & People', [
+    ['h2x', { type: 'custom:silk-weather-card', entity: 'weather.home' }],
+    ['h2x', { type: 'custom:silk-weather-card', entity: 'weather.home', name: 'Now only', show_forecast: false }],
+    ['', { type: 'custom:silk-person-card', entity: 'person.hueeng', battery: 'sensor.phone_battery' }],
+    ['', { type: 'custom:silk-person-card', entity: 'person.guest' }],
+  ]],
+  ['Lock & Alarm', [
+    ['', { type: 'custom:silk-lock-card', entity: 'lock.front' }],
+    ['', { type: 'custom:silk-lock-card', entity: 'lock.storage', instant: true }],
+    ['h2x', { type: 'custom:silk-alarm-card', entity: 'alarm_control_panel.home' }],
+    ['h2x', { type: 'custom:silk-alarm-card', entity: 'alarm_control_panel.office' }],
+  ]],
+  ['Vacuum & Camera', [
+    ['', { type: 'custom:silk-vacuum-card', entity: 'vacuum.robot' }],
+    ['', { type: 'custom:silk-vacuum-card', entity: 'vacuum.upstairs' }],
+    ['h3x', { type: 'custom:silk-camera-card', entity: 'camera.porch' }],
+  ]],
+  ['Timer & Progress', [
+    ['', { type: 'custom:silk-timer-card', entity: 'timer.laundry' }],
+    ['', { type: 'custom:silk-timer-card', entity: 'timer.tea' }],
+    ['', { type: 'custom:silk-progress-card', entity: 'sensor.print_progress', remaining: 'sensor.print_remaining', name: '3D print' }],
+    ['', { type: 'custom:silk-progress-card', entity: 'sensor.backup_progress', name: 'NAS backup' }],
+  ]],
+  ['Updates & Batteries', [
+    ['h2x', { type: 'custom:silk-update-card' }],
+    ['h2x', { type: 'custom:silk-battery-card', limit: 5 }],
+  ]],
+  ['Status & Chips', [
+    ['h2x', { type: 'custom:silk-status-card', entity: 'binary_sensor.server_ok', name: 'Homelab' }],
+    ['h2x', { type: 'custom:silk-status-card', entity: 'binary_sensor.front_door', invert: true }],
+    ['', { type: 'custom:silk-chips-card', chips: ['sensor.living_temp', 'sensor.humidity', 'sensor.house_power', 'sensor.co2'] }],
+    ['', { type: 'custom:silk-chips-card', chips: [{ entity: 'light.living_spot' }, { entity: 'switch.espresso' }, { entity: 'person.hueeng' }, { entity: 'sensor.phone_battery' }, { entity: 'lock.front' }] }],
+  ]],
+  ['Bar & Ring', [
+    ['', { type: 'custom:silk-bar-card', entity: 'sensor.cpu', target: 80 }],
+    ['', { type: 'custom:silk-bar-card', entity: 'sensor.humidity', segments: [{ from: 0, color: '#4aa8ff' }, { from: 60, color: '#e6a23c' }, { from: 75, color: '#ef6c6c' }] }],
+    ['', { type: 'custom:silk-bar-card', entity: 'sensor.house_power', max: 3000, unit: 'W', color: '#5ec78d' }],
+    ['sq', { type: 'custom:silk-ring-card', entity: 'sensor.phone_battery', display: 'icon', segments: [{ from: 0, color: '#ef6c6c' }, { from: 25, color: '#e6a23c' }, { from: 50, color: '#5ec78d' }] }],
+    ['sq', { type: 'custom:silk-ring-card', entity: 'sensor.print_progress', name: '3D print' }],
+    ['sq', { type: 'custom:silk-ring-card', entity: 'sensor.disk', name: 'NVMe', segments: [{ from: 0, color: '#5ec78d' }, { from: 70, color: '#e6a23c' }, { from: 90, color: '#ef6c6c' }] }],
+  ]],
+  ['Energy & To-do', [
+    ['h2x', { type: 'custom:silk-energy-card', name: 'Aircon', icon: 'mdi:air-conditioner', power: 'sensor.aircon_power', today: 'sensor.aircon_today', yesterday: 'sensor.aircon_yesterday', month: 'sensor.aircon_month' }],
+    ['h2x', { type: 'custom:silk-todo-card', entity: 'todo.groceries' }],
   ]],
 ];
 
