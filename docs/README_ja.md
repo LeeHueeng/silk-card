@@ -3,7 +3,7 @@
 [한국어](../README.md) | [English](README_en.md) | [中文](README_zh.md) | **日本語**
 
 **Home Assistant のための、バターのように滑らかなカードスイート。**
-株アプリのようになぞれるグラフから、カード全体をドラッグして調光するライト、部屋を一行に要約するルームカードまで — 11 種類のカードがひとつのデザイン言語を共有します。設定ゼロでも美しい。
+株アプリのようになぞれるグラフから、カード全体をドラッグして調光するライト、部屋を一行に要約するルームカードまで — 91 種類のカードがひとつのデザイン言語を共有します。設定ゼロでも美しい。
 
 ![Silk Card preview](preview.png)
 
@@ -23,7 +23,7 @@
 - **長期間もそのまま動く** — 短い窓は生の履歴を、長い窓は Home Assistant の長期統計を自動的に使用。recorder が古いデータを消しても 1 ヶ月グラフが表示されます。
 - **超軽量** — チャートライブラリなしの手書き SVG レンダリング。小さな JS ファイル 1 つだけ。
 
-## 61 種類のカード
+## 91 種類のカード
 
 タイプはすべて `custom:silk-<名前>-card` パターンです（グラフのみ `custom:silk-card`）。
 
@@ -34,8 +34,11 @@
 | データ | Graph · Tile · Gauge · Bar · Ring · Status（稼働率）· Progress · Energy · Heatmap（7日×24時間）· Week(日別バー) · Network（↓↑ ミラー）· Compare · Range（日次高低）· Sun（日の出入りアーク） |
 | 一目情報 | Weather · Person · Camera · Room · Chips · Battery · Updates · Welcome（挨拶ヘッダー）· Clock · Family（在宅ストリップ）· Device（Zigbee ヘルス）· Count · Air（空気質）· Agenda（予定）· Inbox（通知） |
 | アクション・レイアウト | Button · Alarm（キーパッド）· Timer · To-do · Automation · Log · Countdown（D-day）· **Pop-up**（ハッシュ式）· Navbar · Heading · Divider |
+| エネルギー | **Power Flow**（太陽光→家→系統のフロー）· **Tariff**（時間帯別料金）· Storage · EV · Water（漏水警報）· Speedtest |
+| 屋外・暮らし | Car · Mower · Irrigation · Plant · Forecast（週間）· Moon · UV · Openings · Security · Upkeep · 3D Printer · Appliance |
+| コンテナ・ユーティリティ | **Tabs** · **Expander** · **Carousel** · **Launcher** · **Search** · **Assist** · Say(TTS) · **QR**（自作エンコーダ）· Photo · World Clock · Now Playing · Radio |
 
-ギャラリー全体（120+ バリエーション）: [gallery.png](gallery.png) · ローカルで試す: `npm run demo`
+ギャラリー全体（150+ バリエーション）: [gallery.png](gallery.png) · ローカルで試す: `npm run demo`
 
 ## インストール
 

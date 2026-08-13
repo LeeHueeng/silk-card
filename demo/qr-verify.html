@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>qr-verify</title></head>
+<body>
+<pre id="out">running</pre>
+<script type="module">
+import '../dist/silk-card.js';
+import './qrcode-ref.js';
+
+const out = document.getElementById('out');
+const log = (m) => { out.textContent += m + '\n'; };
+
+const CASES = [
+  { label: 'wifi', config: { wifi: { ssid: 'hueeng-home', password: 'silkcard2026', encryption: 'WPA' } },
+    candidates: [
+      'WIFI:T:WPA;S:hueeng-home;P:silkcard2026;;',
+      'WIFI:T:WPA;S:hueeng-home;P:silkcard2026;H:false;;',
+      'WIFI:S:hueeng-home;T:WPA;P:silkcard2026;;',
+      'WIFI:T:WPA;S:hueeng-home;P:silkcard2026;',
+    ] },
+  { label: 'short', config: { text: 'HELLO SILK' }, candidates: ['HELLO SILK'] },
+  { label: 'url', config: { text: 'https://github.com/LeeHueeng/silk-card' }, candidates: ['https://github.com/LeeHueeng/silk-card'] },
+  { label: 'long', config: { text: 'x'.repeat(120) }, candidates: ['x'.repeat(120)] },
+];
+
+/** Read the rendered card's module matrix out of its SVG rects. */
+function matrixFromCard(card) {
+  const svg = card.renderRoot?.querySelector('svg');
+  if (!svg) return null;
+  const vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number);
+  if (vb.length !== 4) return null;
+  const [vx, vy, vw, vh] = vb;
+  const rects = [...svg.querySelectorAll('rect')].filter((r) => {
+    const w = Number(r.getAttribute('width') || 0);
+    return w > 0 && w < vw; // drop the background plate
+  });
+  if (!rects.length) return null;
+  // module size = the smallest rect width (a single module)
+  const unit = Math.min(...rects.map((r) => Number(r.getAttribute('width'))));
+  const cells = new Map();
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const r of rects) {
+    const x = Number(r.getAttribute('x') || 0);
+    const y = Number(r.getAttribute('y') || 0);
+    const w = Number(r.getAttribute('width') || 0);
+    const h = Number(r.getAttribute('height') || 0);
+    for (let dy = 0; dy < Math.round(h / unit); dy++) {
+      for (let dx = 0; dx < Math.round(w / unit); dx++) {
+        const cx = Math.round((x - vx) / unit) + dx;
+        const cy = Math.round((y - vy) / unit) + dy;
+        cells.set(cx + ',' + cy, true);
+        minX = Math.min(minX, cx); maxX = Math.max(maxX, cx);
+        minY = Math.min(minY, cy); maxY = Math.max(maxY, cy);
+      }
+    }
+  }
+  // The quiet zone is empty, so bound the symbol by the painted extent.
+  const size = Math.max(maxX - minX, maxY - minY) + 1;
+  const rows = [];
+  for (let y = 0; y < size; y++) {
+    let s = '';
+    for (let x = 0; x < size; x++) s += cells.has((x + minX) + ',' + (y + minY)) ? '1' : '0';
+    rows.push(s);
+  }
+  return { size, rows };
+}
+
+await customElements.whenDefined('silk-qr-card');
+out.textContent = '';
+
+for (const c of CASES) {
+  const card = document.createElement('silk-qr-card');
+  try { card.setConfig({ type: 'custom:silk-qr-card', ...c.config }); }
+  catch (e) { log(`${c.label}: SETCONFIG_FAIL ${e.message}`); continue; }
+  card.hass = { states: {}, callService: async () => {}, callWS: async () => ({}) };
+  const host = document.createElement('div');
+  host.style.cssText = 'width:300px;height:300px';
+  host.appendChild(card);
+  document.body.appendChild(host);
+  await new Promise((r) => setTimeout(r, 250));
+
+  const mine = matrixFromCard(card);
+  if (!mine) { log(`${c.label}: NO_MATRIX`); continue; }
+
+  // Sweep candidate payloads x ECC x mask x mode. An exact match on any
+  // combination proves the encoder (data, ECC bytes, format info, masking) is
+  // spec-correct — and tells us which payload/mode the card chose.
+  let best = null;
+  outer:
+  for (const text of c.candidates) {
+    for (const mode of ['byte', 'alphanumeric', null]) {
+      for (const ecc of ['M', 'L', 'Q', 'H']) {
+        for (let mask = 0; mask < 8; mask++) {
+          let r;
+          try { r = await window.__qrRef(text, ecc, mask, mode); } catch { continue; }
+          if (r.size !== mine.size) break;
+          let diff = 0;
+          for (let y = 0; y < r.size; y++) {
+            for (let x = 0; x < r.size; x++) if (r.rows[y][x] !== mine.rows[y][x]) diff++;
+          }
+          if (!best || diff < best.diff) best = { diff, ecc, mask, mode: mode ?? 'auto', size: r.size, text };
+          if (diff === 0) break outer;
+        }
+      }
+    }
+  }
+  if (!best) { log(`${c.label}: size=${mine.size} — no reference of that size`); continue; }
+  const total = best.size * best.size;
+  log(`${c.label}: size=${best.size} ecc=${best.ecc} mask=${best.mask} mode=${best.mode} diff=${best.diff}/${total} ${best.diff === 0 ? 'EXACT_MATCH ✓' : 'MISMATCH'}${best.diff === 0 && c.candidates.length > 1 ? ' :: ' + best.text : ''}`);
+}
+log('done');
+</script>
+</body>
+</html>

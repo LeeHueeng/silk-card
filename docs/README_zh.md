@@ -3,7 +3,7 @@
 [한국어](../README.md) | [English](README_en.md) | **中文** | [日本語](README_ja.md)
 
 **为 Home Assistant 打造的如丝般顺滑的卡片套件。**
-从像股票 App 一样拖动读数的曲线，到拖动整张卡片调节亮度的灯光，再到一行概括整个房间的房间卡 — 11 种卡片，同一套设计语言。无需任何配置即可拥有出色的外观。
+从像股票 App 一样拖动读数的曲线，到拖动整张卡片调节亮度的灯光，再到一行概括整个房间的房间卡 — 91 种卡片，同一套设计语言。无需任何配置即可拥有出色的外观。
 
 ![Silk Card preview](preview.png)
 
@@ -23,7 +23,7 @@
 - **长时间范围开箱即用** — 短窗口使用原始历史数据；长窗口自动切换到 Home Assistant 长期统计数据，即使 recorder 清除了旧数据，一个月的曲线也照常显示。
 - **极致轻量** — 手写 SVG 渲染，不依赖任何图表库。只有一个小小的 JS 文件。
 
-## 61 种卡片
+## 91 种卡片
 
 所有类型均为 `custom:silk-<名称>-card`（仅曲线卡为 `custom:silk-card`）。
 
@@ -34,8 +34,11 @@
 | 数据 | Graph · Tile · Gauge · Bar · Ring · Status（在线率）· Progress · Energy · Heatmap（7天×24时）· Week（逐日柱状）· Network（↓↑ 镜像）· Compare · Range（当日高低）· Sun（日出日落弧线） |
 | 信息一览 | Weather · Person · Camera · Room · Chips · Battery · Updates · Welcome（问候页头）· Clock · Family（在家状态条）· Device（Zigbee 健康）· Count · Air（空气质量）· Agenda（日程）· Inbox（通知中心） |
 | 动作与布局 | Button · Alarm（键盘）· Timer · To-do · Automation · Log · Countdown（倒数日）· **Pop-up**（哈希弹窗）· Navbar · Heading · Divider |
+| 能源 | **Power Flow**（太阳能→家庭→电网 流动动画）· **Tariff**（分时电价）· Storage · EV · Water（漏水报警）· Speedtest |
+| 户外与生活 | Car · Mower · Irrigation · Plant · Forecast（7天）· Moon · UV · Openings · Security · Upkeep · 3D Printer · Appliance |
+| 容器与工具 | **Tabs** · **Expander** · **Carousel** · **Launcher** · **Search** · **Assist** · Say(TTS) · **QR**（自研编码器）· Photo · World Clock · Now Playing · Radio |
 
-完整画廊（120+ 变体）：[gallery.png](gallery.png) · 本地体验：`npm run demo`
+完整画廊（150+ 变体）：[gallery.png](gallery.png) · 本地体验：`npm run demo`
 
 ## 安装
 

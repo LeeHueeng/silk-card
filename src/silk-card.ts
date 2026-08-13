@@ -60,8 +60,38 @@ import { META as DEVICE } from './cards/device';
 import { META as PRESENCE } from './cards/presence';
 import { META as SHUTTER } from './cards/shutter';
 import { META as MINMAX } from './cards/minmax';
+import { META as POWERFLOW } from './cards/powerflow';
+import { META as TARIFF } from './cards/tariff';
+import { META as STORAGE } from './cards/storage';
+import { META as EVCHARGER } from './cards/evcharger';
+import { META as WATER } from './cards/water';
+import { META as SPEEDTEST } from './cards/speedtest';
+import { META as CAR } from './cards/car';
+import { META as MOWER } from './cards/mower';
+import { META as IRRIGATION } from './cards/irrigation';
+import { META as PLANT } from './cards/plant';
+import { META as FORECAST } from './cards/forecast';
+import { META as MOON } from './cards/moon';
+import { META as UV } from './cards/uv';
+import { META as OPENINGS } from './cards/openings';
+import { META as SECURITY } from './cards/security';
+import { META as UPKEEP } from './cards/maintenance';
+import { META as TABS } from './cards/tabs';
+import { META as EXPANDER } from './cards/expander';
+import { META as CAROUSEL } from './cards/carousel';
+import { META as LAUNCHER } from './cards/launcher';
+import { META as SEARCH } from './cards/search';
+import { META as ASSIST } from './cards/assist';
+import { META as NOWPLAYING } from './cards/nowplaying';
+import { META as RADIO } from './cards/radio';
+import { META as SAY } from './cards/tts';
+import { META as QR } from './cards/qr';
+import { META as PHOTO } from './cards/photo';
+import { META as WORLDCLOCK } from './cards/worldclock';
+import { META as PRINTER } from './cards/printer';
+import { META as APPLIANCE } from './cards/appliance';
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 
 const CARDS = [
   GRAPH, TOGGLE, LIGHT, TILE, GAUGE, CLIMATE, COVER, FAN, BUTTON, MEDIA, ROOM,
@@ -71,6 +101,10 @@ const CARDS = [
   SELECT, REMOTE, MEDIAGROUP, NUMBER, KEYPAD, SUN, AQI, HEATMAP, WEEK,
   NETWORK, COMPARE, CALENDAR, COUNTDOWN, AUTOMATION, LOG, NOTIFY, COUNTER,
   DEVICE, PRESENCE, SHUTTER, MINMAX,
+  POWERFLOW, TARIFF, STORAGE, EVCHARGER, WATER, SPEEDTEST, CAR, MOWER,
+  IRRIGATION, PLANT, FORECAST, MOON, UV, OPENINGS, SECURITY, UPKEEP,
+  TABS, EXPANDER, CAROUSEL, LAUNCHER, SEARCH, ASSIST, NOWPLAYING, RADIO,
+  SAY, QR, PHOTO, WORLDCLOCK, PRINTER, APPLIANCE,
 ];
 
 declare global {

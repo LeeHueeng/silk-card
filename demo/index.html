@@ -199,6 +199,33 @@ let TODO_ITEMS = [
   { uid: 't4', summary: '세제 리필', status: 'completed' },
 ];
 
+// Container cards (tabs/expander/carousel/grid/popup/drawer) ask HA for this.
+window.loadCardHelpers = async () => ({
+  createCardElement(config) {
+    const tag = String(config.type || '').replace('custom:', '');
+    const el = document.createElement(customElements.get(tag) ? tag : 'div');
+    if (el.setConfig) {
+      try { el.setConfig(config); } catch (e) { el.textContent = String(e.message); }
+    } else {
+      el.textContent = `(${config.type})`;
+      el.style.cssText = 'padding:10px;font-size:12px;color:var(--secondary-text-color)';
+    }
+    return el;
+  },
+});
+
+function dailyForecast() {
+  const conds = ['sunny', 'partlycloudy', 'rainy', 'cloudy', 'partlycloudy', 'sunny', 'rainy'];
+  const base = new Date().setHours(9, 0, 0, 0);
+  return conds.map((condition, i) => ({
+    datetime: new Date(base + i * 86400_000).toISOString(),
+    condition,
+    temperature: 28 + ((i * 7) % 5) - 2,
+    templow: 20 + ((i * 3) % 4),
+    precipitation_probability: [0, 10, 70, 30, 10, 0, 60][i],
+  }));
+}
+
 function hourlyForecast() {
   const conds = ['partlycloudy', 'cloudy', 'rainy', 'rainy', 'cloudy', 'partlycloudy'];
   const base = Date.now();
@@ -304,6 +331,67 @@ const states = Object.fromEntries([
   E('sensor.door_lqi', '132', { friendly_name: 'Door LQI' }),
   E('sensor.door_last_seen', new Date(Date.now() - 3 * 3600_000).toISOString(), { friendly_name: 'Door last seen', device_class: 'timestamp' }),
   E('sensor.motion_lqi', '87', { friendly_name: 'Motion LQI' }),
+  E('sensor.solar_power', '2140', { friendly_name: 'Solar', unit_of_measurement: 'W', device_class: 'power' }),
+  E('sensor.grid_power', '-480', { friendly_name: 'Grid', unit_of_measurement: 'W', device_class: 'power' }),
+  E('sensor.home_power', '1360', { friendly_name: 'Home', unit_of_measurement: 'W', device_class: 'power' }),
+  E('sensor.battery_power', '300', { friendly_name: 'Battery flow', unit_of_measurement: 'W', device_class: 'power' }),
+  E('sensor.battery_soc', '64', { friendly_name: 'Battery', unit_of_measurement: '%', device_class: 'battery' }),
+  E('sensor.price_now', '128.4', {
+    friendly_name: 'Electricity price', unit_of_measurement: 'KRW/kWh',
+    raw_today: Array.from({ length: 24 }, (_, h) => ({
+      start: new Date(new Date().setHours(h, 0, 0, 0)).toISOString(),
+      value: Math.round((95 + 55 * Math.sin(((h - 4) / 24) * Math.PI * 2) + (h >= 18 && h <= 21 ? 40 : 0)) * 10) / 10,
+    })),
+  }),
+  E('sensor.ev_soc', '62', { friendly_name: 'EV battery', unit_of_measurement: '%', device_class: 'battery' }),
+  E('sensor.ev_power', '7400', { friendly_name: 'EV power', unit_of_measurement: 'W', device_class: 'power' }),
+  E('sensor.ev_range', '312', { friendly_name: 'EV range', unit_of_measurement: 'km' }),
+  E('sensor.ev_session', '18.4', { friendly_name: 'EV session', unit_of_measurement: 'kWh', device_class: 'energy' }),
+  E('switch.ev_charging', 'on', { friendly_name: 'EV charging', icon: 'mdi:ev-station' }),
+  E('sensor.ev_status', 'Charging', { friendly_name: 'EV status' }),
+  E('sensor.water_flow', '4.2', { friendly_name: 'Water flow', unit_of_measurement: 'L/min' }),
+  E('sensor.water_today', '186', { friendly_name: 'Water today', unit_of_measurement: 'L' }),
+  E('sensor.water_month', '4820', { friendly_name: 'Water month', unit_of_measurement: 'L' }),
+  E('binary_sensor.leak', 'off', { friendly_name: 'Leak sensor', device_class: 'moisture' }),
+  E('sensor.speed_down', '482', { friendly_name: 'Download', unit_of_measurement: 'Mbit/s', state_class: 'measurement' }),
+  E('sensor.speed_up', '96.4', { friendly_name: 'Upload', unit_of_measurement: 'Mbit/s' }),
+  E('sensor.speed_ping', '8.2', { friendly_name: 'Ping', unit_of_measurement: 'ms' }),
+  E('script.run_speedtest', 'off', { friendly_name: 'Run speedtest' }),
+  E('sensor.car_fuel', '58', { friendly_name: 'Fuel', unit_of_measurement: '%' }),
+  E('sensor.car_range', '410', { friendly_name: 'Car range', unit_of_measurement: 'km' }),
+  E('sensor.car_odo', '84210', { friendly_name: 'Odometer', unit_of_measurement: 'km' }),
+  E('lock.car', 'locked', { friendly_name: 'Car lock' }),
+  E('device_tracker.car', 'home', { friendly_name: 'Car location' }),
+  E('lawn_mower.garden', 'mowing', { friendly_name: 'Garden mower', supported_features: 7 }),
+  E('sensor.mower_battery', '62', { friendly_name: 'Mower battery', unit_of_measurement: '%', device_class: 'battery' }),
+  E('switch.zone_front', 'on', { friendly_name: 'Front lawn' }),
+  E('switch.zone_back', 'off', { friendly_name: 'Back lawn' }),
+  E('switch.zone_beds', 'off', { friendly_name: 'Flower beds' }),
+  E('sensor.plant_moisture', '18', { friendly_name: 'Monstera moisture', unit_of_measurement: '%', device_class: 'humidity' }),
+  E('sensor.plant_light', '2400', { friendly_name: 'Monstera light', unit_of_measurement: 'lx', device_class: 'illuminance' }),
+  E('sensor.plant_temp', '23.4', { friendly_name: 'Monstera temp', unit_of_measurement: '°C', device_class: 'temperature' }),
+  E('sensor.uv_index', '7.4', { friendly_name: 'UV index' }),
+  E('binary_sensor.window_living', 'on', { friendly_name: 'Living window', device_class: 'window' }),
+  E('binary_sensor.door_back', 'off', { friendly_name: 'Back door', device_class: 'door' }),
+  E('binary_sensor.garage_door', 'off', { friendly_name: 'Garage', device_class: 'garage_door' }),
+  E('binary_sensor.motion_hall', 'on', { friendly_name: 'Hall motion', device_class: 'motion' }),
+  E('sensor.filter_life', '22', { friendly_name: 'Purifier filter', unit_of_measurement: '%' }),
+  E('sensor.tts_engine', 'ok', { friendly_name: 'TTS' }),
+  E('tts.google_en', 'unknown', { friendly_name: 'Google Translate TTS' }),
+  E('camera.printer', 'streaming', { friendly_name: 'Printer camera', entity_picture: '/demo/porch.svg?token=demo' }),
+  E('sensor.printer_status', 'Printing', { friendly_name: 'Printer status' }),
+  E('sensor.printer_progress', '41', { friendly_name: 'Print progress', unit_of_measurement: '%' }),
+  E('sensor.printer_remaining', '4.9', { friendly_name: 'Print remaining', unit_of_measurement: 'h' }),
+  E('sensor.nozzle_temp', '218', { friendly_name: 'Nozzle', unit_of_measurement: '°C', device_class: 'temperature' }),
+  E('sensor.nozzle_target', '220', { friendly_name: 'Nozzle target', unit_of_measurement: '°C', device_class: 'temperature' }),
+  E('sensor.bed_temp', '60', { friendly_name: 'Bed', unit_of_measurement: '°C', device_class: 'temperature' }),
+  E('sensor.bed_target', '60', { friendly_name: 'Bed target', unit_of_measurement: '°C', device_class: 'temperature' }),
+  E('sensor.washer_state', 'running', { friendly_name: 'Washer state' }),
+  E('sensor.washer_remaining', '32', { friendly_name: 'Washer remaining', unit_of_measurement: 'min' }),
+  E('sensor.washer_power', '420', { friendly_name: 'Washer power', unit_of_measurement: 'W', device_class: 'power' }),
+  E('sensor.washer_program', 'Cotton 60°', { friendly_name: 'Washer program' }),
+  E('sensor.dryer_state', 'finished', { friendly_name: 'Dryer state' }),
+  E('image.frame_1', new Date().toISOString(), { friendly_name: 'Frame', entity_picture: '/demo/porch.svg?token=a' }),
   E('sensor.remote_battery', '45', { friendly_name: 'TV remote', unit_of_measurement: '%', device_class: 'battery' }),
   E('sensor.door_battery', '5', { friendly_name: 'Door sensor', unit_of_measurement: '%', device_class: 'battery' }),
   E('sensor.motion_battery', '100', { friendly_name: 'Motion sensor', unit_of_measurement: '%', device_class: 'battery' }),
@@ -417,6 +505,7 @@ const hassBase = {
         { summary: 'Server maintenance window', start: { dateTime: at(3, 2) }, end: { dateTime: at(3, 4) } },
       ];
     }
+    if (path.startsWith('tts/')) return {};
     if (path.startsWith('logbook/')) {
       const ago = (m) => new Date(Date.now() - m * 60000).toISOString();
       return [
@@ -432,7 +521,8 @@ const hassBase = {
   connection: {
     async subscribeMessage(cb, msg) {
       if (msg.type === 'weather/subscribe_forecast') {
-        setTimeout(() => cb({ forecast: hourlyForecast() }), 150);
+        const rows = msg.forecast_type === 'daily' ? dailyForecast() : hourlyForecast();
+        setTimeout(() => cb({ forecast: rows }), 150);
         return () => {};
       }
       throw new Error('unmocked subscription: ' + msg.type);
@@ -454,6 +544,13 @@ const hassBase = {
     }
     if (msg.type === 'persistent_notification/get') {
       return NOTIFS.map((n) => ({ ...n }));
+    }
+    if (msg.type === 'conversation/process') {
+      const text = String(msg.text ?? '');
+      const reply = /light|불|lamp/i.test(text) ? 'Turned on 3 lights in the living room.'
+        : /temp|온도|thermostat/i.test(text) ? 'The living room is 23.2 degrees.'
+        : `Sorry, I don't know how to handle "${text}" yet.`;
+      return { response: { speech: { plain: { speech: reply } } } };
     }
     if (msg.type === 'recorder/statistics_during_period') {
       const step = msg.period === 'day' ? 86400 : 3600;
@@ -655,6 +752,53 @@ const SECTIONS = [
     ['h3x', { type: 'custom:silk-log-card', entity: 'switch.espresso' }],
     ['h3x', { type: 'custom:silk-notify-card' }],
     ['sq', { type: 'custom:silk-counter-card', name: 'Lights on', icon: 'mdi:lightbulb', entities: ['light.living_spot', 'light.hallway', 'light.closet', 'light.desk_lamp', 'light.bedroom_main'] }],
+  ]],
+  ['Energy flow & tariff', [
+    ['h4x', { type: 'custom:silk-power-flow-card', solar: 'sensor.solar_power', grid: 'sensor.grid_power', home: 'sensor.home_power', battery: 'sensor.battery_power', battery_soc: 'sensor.battery_soc' }],
+    ['h2x', { type: 'custom:silk-tariff-card', entity: 'sensor.price_now', name: 'Electricity today' }],
+    ['h2x', { type: 'custom:silk-storage-card', soc: 'sensor.battery_soc', power: 'sensor.battery_power', capacity: 10, reserve: 20, name: 'Home battery' }],
+    ['h2x', { type: 'custom:silk-ev-card', status: 'sensor.ev_status', power: 'sensor.ev_power', energy: 'sensor.ev_session', soc: 'sensor.ev_soc', range: 'sensor.ev_range', switch: 'switch.ev_charging' }],
+  ]],
+  ['Water, Speed, Car & Mower', [
+    ['h2x', { type: 'custom:silk-water-card', flow: 'sensor.water_flow', today: 'sensor.water_today', month: 'sensor.water_month', leak: 'binary_sensor.leak' }],
+    ['h2x', { type: 'custom:silk-speedtest-card', download: 'sensor.speed_down', upload: 'sensor.speed_up', ping: 'sensor.speed_ping', run: 'script.run_speedtest' }],
+    ['h2x', { type: 'custom:silk-car-card', name: 'Ioniq', fuel: 'sensor.car_fuel', range: 'sensor.car_range', odometer: 'sensor.car_odo', lock: 'lock.car', location: 'device_tracker.car' }],
+    ['', { type: 'custom:silk-mower-card', entity: 'lawn_mower.garden', battery: 'sensor.mower_battery' }],
+  ]],
+  ['Garden, Plants & Sky', [
+    ['h3x', { type: 'custom:silk-irrigation-card', name: 'Sprinklers', zones: [{ entity: 'switch.zone_front', name: 'Front lawn', duration: 15 }, { entity: 'switch.zone_back', name: 'Back lawn', duration: 20 }, { entity: 'switch.zone_beds', name: 'Flower beds', duration: 10 }] }],
+    ['h2x', { type: 'custom:silk-plant-card', name: 'Monstera', moisture: 'sensor.plant_moisture', light: 'sensor.plant_light', temperature: 'sensor.plant_temp' }],
+    ['h3x', { type: 'custom:silk-forecast-card', entity: 'weather.home', days: 5 }],
+    ['sq', { type: 'custom:silk-moon-card' }],
+    ['h2x', { type: 'custom:silk-uv-card', entity: 'sensor.uv_index' }],
+  ]],
+  ['Security & Upkeep', [
+    ['h3x', { type: 'custom:silk-openings-card', entities: ['binary_sensor.window_living', 'binary_sensor.door_back', 'binary_sensor.garage_door'] }],
+    ['h2x', { type: 'custom:silk-security-card', alarm: 'alarm_control_panel.home', locks: ['lock.front', 'lock.storage'], openings: ['binary_sensor.window_living', 'binary_sensor.door_back'], motion: ['binary_sensor.motion_hall'] }],
+    ['h3x', { type: 'custom:silk-maintenance-card', name: 'Upkeep', items: [{ name: 'Purifier filter', entity: 'sensor.filter_life', icon: 'mdi:air-filter' }, { name: 'Water filter', last: '2026-05-01', interval_days: 180, icon: 'mdi:water' }, { name: 'Printer nozzle', last: '2026-08-01', interval_days: 30, icon: 'mdi:printer-3d-nozzle' }] }],
+  ]],
+  ['Containers — tabs, expander, carousel, launcher', [
+    ['h3x', { type: 'custom:silk-tabs-card', tabs: [{ name: 'Climate', icon: 'mdi:thermostat', cards: [{ type: 'custom:silk-toggle-card', entity: 'switch.espresso' }, { type: 'custom:silk-fan-card', entity: 'fan.bedroom' }] }, { name: 'Lights', icon: 'mdi:lightbulb-group', cards: [{ type: 'custom:silk-light-card', entity: 'light.living_spot' }, { type: 'custom:silk-light-card', entity: 'light.hallway' }] }] }],
+    ['h2x', { type: 'custom:silk-expander-card', title: 'Bedroom details', icon: 'mdi:bed-king', summary_entity: 'sensor.bedroom_temp', cards: [{ type: 'custom:silk-toggle-card', entity: 'light.bedroom_main' }, { type: 'custom:silk-fan-card', entity: 'fan.bedroom' }] }],
+    ['h3x', { type: 'custom:silk-carousel-card', cards: [{ type: 'custom:silk-tile-card', entity: 'sensor.living_temp' }, { type: 'custom:silk-tile-card', entity: 'sensor.house_power' }, { type: 'custom:silk-tile-card', entity: 'sensor.co2' }] }],
+    ['h2x', { type: 'custom:silk-launcher-card', items: [{ icon: 'mdi:lightbulb', name: 'Lights', entity: 'light.living_spot' }, { icon: 'mdi:sofa', name: 'Living', tap: { action: 'navigate', path: '/living' } }, { icon: 'mdi:coffee-maker', name: 'Coffee', entity: 'switch.espresso' }, { icon: 'mdi:movie-open', name: 'Movie', entity: 'scene.movie_night' }, { icon: 'mdi:fan', name: 'Fan', entity: 'fan.bedroom' }, { icon: 'mdi:shield-home', name: 'Arm', entity: 'alarm_control_panel.home' }] }],
+  ]],
+  ['Search, Assist, Say & QR', [
+    ['h3x', { type: 'custom:silk-search-card' }],
+    ['h3x', { type: 'custom:silk-assist-card', greeting: 'Ask me to turn something on.' }],
+    ['h2x', { type: 'custom:silk-say-card', entity: 'media_player.living_speaker', engine: 'tts.google_en', presets: ['Dinner is ready', 'Someone at the door'] }],
+    ['sq', { type: 'custom:silk-qr-card', wifi: { ssid: 'hueeng-home', password: 'silkcard2026', encryption: 'WPA' }, name: 'Guest Wi-Fi' }],
+  ]],
+  ['Media hero, Radio, Photo & World clock', [
+    ['h4x', { type: 'custom:silk-now-playing-card', entity: 'media_player.living_speaker' }],
+    ['h3x', { type: 'custom:silk-radio-card', entity: 'media_player.kitchen_speaker', stations: [{ name: 'KBS Classic', url: 'http://example/1', icon: 'mdi:radio' }, { name: 'Lofi Girl', url: 'http://example/2', icon: 'mdi:music' }, { name: 'BBC 6', url: 'http://example/3', icon: 'mdi:radio' }, { name: 'Jazz24', url: 'http://example/4', icon: 'mdi:music' }] }],
+    ['h4x', { type: 'custom:silk-photo-card', entities: ['image.frame_1'], images: ['/demo/porch.svg'], interval: 10, caption: true }],
+    ['h2x', { type: 'custom:silk-world-clock-card', zones: [{ label: 'Seoul', tz: 'Asia/Seoul', flag: 'SEL' }, { label: 'New York', tz: 'America/New_York', flag: 'NYC' }, { label: 'London', tz: 'Europe/London', flag: 'LDN' }] }],
+  ]],
+  ['Printer & Appliances', [
+    ['h4x', { type: 'custom:silk-printer-card', name: 'Bambu P1S', status: 'sensor.printer_status', progress: 'sensor.printer_progress', remaining: 'sensor.printer_remaining', nozzle: 'sensor.nozzle_temp', nozzle_target: 'sensor.nozzle_target', bed: 'sensor.bed_temp', bed_target: 'sensor.bed_target', camera: 'camera.printer' }],
+    ['h2x', { type: 'custom:silk-appliance-card', name: 'Washer', icon: 'mdi:washing-machine', state: 'sensor.washer_state', power: 'sensor.washer_power', remaining: 'sensor.washer_remaining', program: 'sensor.washer_program' }],
+    ['h2x', { type: 'custom:silk-appliance-card', name: 'Dryer', icon: 'mdi:tumble-dryer', state: 'sensor.dryer_state' }],
   ]],
   ['Devices, Family & Shutter', [
     ['h3x', { type: 'custom:silk-device-card', name: 'Zigbee fleet', devices: [{ name: 'Door sensor', battery: 'sensor.door_battery', signal: 'sensor.door_lqi', last_seen: 'sensor.door_last_seen' }, { name: 'Motion sensor', battery: 'sensor.motion_battery', signal: 'sensor.motion_lqi' }, { name: 'Wall button', battery: 'sensor.button_battery' }] }],

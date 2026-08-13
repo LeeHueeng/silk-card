@@ -3,7 +3,7 @@
 **한국어** | [English](docs/README_en.md) | [中文](docs/README_zh.md) | [日本語](docs/README_ja.md)
 
 **Home Assistant를 위한 버터처럼 부드러운 카드 스위트.**
-주식 앱처럼 문지르는 그래프부터, 카드 전체를 드래그해 밝기를 조절하는 조명, 방 하나를 한 줄로 요약하는 룸 카드까지 — 11종의 카드가 하나의 디자인 언어를 씁니다. 설정 없이도 그냥 예쁩니다.
+주식 앱처럼 문지르는 그래프부터, 카드 전체를 드래그해 밝기를 조절하는 조명, 방 하나를 한 줄로 요약하는 룸 카드까지 — 91종의 카드가 하나의 디자인 언어를 씁니다. 설정 없이도 그냥 예쁩니다.
 
 ![Silk Card preview](docs/preview.png)
 
@@ -23,7 +23,7 @@
 - **긴 범위도 그냥 동작** — 짧은 창은 원시 히스토리를, 긴 창은 Home Assistant 장기 통계를 자동으로 사용합니다. recorder가 오래된 데이터를 지워도 1개월 그래프가 나옵니다.
 - **초경량** — 차트 라이브러리 없이 SVG를 직접 렌더링. 작은 JS 파일 하나가 전부입니다.
 
-## 카드 61종
+## 카드 91종
 
 타입은 전부 `custom:silk-<이름>-card` 패턴입니다 (그래프만 `custom:silk-card`).
 
@@ -33,9 +33,12 @@
 | 물리 컨트롤 | **Rocker**(벽 스위치) · **Push**(푸시버튼) · **Knob**(돌리는 다이얼) · **Fader**(세로 슬라이더) · **Dial**(Nest식 온도 다이얼) · **Keypad**(PIN 패드) |
 | 데이터 | Graph · Tile · Gauge · Bar · Ring · Status(가동률) · Progress · Energy · Heatmap(7일×24시간) · Week(일별 막대) · Network(↓↑ 미러) · Compare · Range(일 최저·최고) · Sun(일출·일몰 궤적) |
 | 정보 | Weather · Person · Camera · Room · Chips · Battery · Updates · Welcome(인사 헤더) · Clock · Family(재실 스트립) · Device(지그비 상태) · Count · Air(공기질) · Agenda(일정) · Inbox(알림함) |
-| 액션·레이아웃 | Button · Alarm(키패드) · Timer · To-do · Automation · Log · Countdown(D-day) · **Pop-up**(해시 팝업) · Navbar · Heading · Divider |
+| 액션·레이아웃 | Button · Alarm(키패드) · Timer · To-do · Automation · Log · Countdown(D-day) · **Pop-up**(해시 팝업) · Navbar · Heading · Divider · **Tabs** · **Expander** · **Carousel**(스와이프) · **Launcher**(앱 그리드) |
+| 에너지 | **Power Flow**(태양광→집→그리드 흐름 애니메이션) · **Tariff**(시간대별 요금) · Storage(가정용 배터리) · EV(충전) · Water(누수 경보) · Speedtest |
+| 생활·바깥 | Car · Mower · Irrigation(구역별 관수) · Plant · Forecast(주간) · Moon(위상) · UV · Openings(개폐 현황) · Security(집 전체 판정) · Upkeep(소모품) · Printer(3D) · Appliance(세탁기) |
+| 유틸 | **Search**(엔티티 검색) · **Assist**(대화) · Say(TTS) · **QR**(와이파이 QR, 자체 인코더) · Photo(액자) · World Clock · Now Playing(아트워크 히어로) · Radio(프리셋) |
 
-전체 갤러리(120+ 변형): [docs/gallery.png](docs/gallery.png) · 로컬에서 만져보기: `npm run demo`
+전체 갤러리(150+ 변형): [docs/gallery.png](docs/gallery.png) · 로컬에서 만져보기: `npm run demo`
 
 ## 설치
 

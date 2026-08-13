@@ -3,7 +3,7 @@
 [한국어](../README.md) | **English** | [中文](README_zh.md) | [日本語](README_ja.md)
 
 **A buttery-smooth card suite for Home Assistant.**
-From a graph you scrub like a stock app, to a light you dim by dragging the card itself, to a whole room summarized in one row — 11 cards, one design language. Zero config required to look great.
+From a graph you scrub like a stock app, to a light you dim by dragging the card itself, to a whole room summarized in one row — 91 cards, one design language. Zero config required to look great.
 
 ![Silk Card preview](preview.png)
 
@@ -23,7 +23,7 @@ Existing graph cards make you choose: minimal but frozen in time, or powerful bu
 - **Long ranges that just work** — short windows use raw history; longer windows automatically switch to Home Assistant long-term statistics, so a 1-month graph works even after the recorder purges.
 - **Tiny** — hand-rolled SVG rendering, no charting library. One small JS file.
 
-## The 61 cards
+## The 91 cards
 
 Every type follows `custom:silk-<name>-card` (the graph alone is `custom:silk-card`).
 
@@ -34,8 +34,11 @@ Every type follows `custom:silk-<name>-card` (the graph alone is `custom:silk-ca
 | Data | Graph · Tile · Gauge · Bar · Ring · Status (uptime) · Progress · Energy · Heatmap (7d×24h) · Week (daily bars) · Network (mirrored ↓↑) · Compare · Range (daily min/max) · Sun (horizon arc) |
 | Glance | Weather · Person · Camera · Room · Chips · Battery · Updates · Welcome (greeting header) · Clock · Family (presence strip) · Device (Zigbee health) · Count · Air (AQI) · Agenda · Inbox (notifications) |
 | Actions & layout | Button · Alarm (keypad) · Timer · To-do · Automation · Log · Countdown (D-day) · **Pop-up** (hash-based) · Navbar · Heading · Divider |
+| Energy | **Power Flow** (animated solar→home→grid) · **Tariff** (hourly prices) · Storage · EV · Water (leak alarm) · Speedtest |
+| Outdoors & life | Car · Mower · Irrigation · Plant · Forecast (7-day) · Moon · UV · Openings · Security verdict · Upkeep · 3D Printer · Appliance |
+| Containers & utils | **Tabs** · **Expander** · **Carousel** · **Launcher** · **Search** · **Assist** · Say (TTS) · **QR** (self-written encoder) · Photo · World Clock · Now Playing · Radio |
 
-Full gallery (120+ variants): [gallery.png](gallery.png) · Try it locally: `npm run demo`
+Full gallery (150+ variants): [gallery.png](gallery.png) · Try it locally: `npm run demo`
 
 ## Install
 
