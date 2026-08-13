@@ -230,7 +230,7 @@ export class SilkSparkbarCard extends LitElement {
     super.disconnectedCallback();
     window.clearTimeout(this._hourlyTimer);
     this._resize?.disconnect();
-    this._connection?.removeEventListener('ready', this._onWsReady);
+    this._connection?.removeEventListener?.('ready', this._onWsReady);
     this._connection = undefined;
   }
 
@@ -238,7 +238,7 @@ export class SilkSparkbarCard extends LitElement {
     if (!this.hass || !this._config) return;
     if (!this._connection) {
       const conn = (this.hass as HassWithConnection).connection;
-      if (conn) {
+      if (typeof conn?.addEventListener === 'function') {
         conn.addEventListener('ready', this._onWsReady);
         this._connection = conn;
       }

@@ -3,7 +3,7 @@
 [한국어](../README.md) | [English](README_en.md) | **中文** | [日本語](README_ja.md)
 
 **为 Home Assistant 打造的如丝般顺滑的卡片套件。**
-从像股票 App 一样拖动读数的曲线，到拖动整张卡片调节亮度的灯光，再到一行概括整个房间的房间卡 — 91 种卡片，同一套设计语言。无需任何配置即可拥有出色的外观。
+从像股票 App 一样拖动读数的曲线，到拖动整张卡片调节亮度的灯光，再到一行概括整个房间的房间卡 — 191 种卡片，同一套设计语言。无需任何配置即可拥有出色的外观。
 
 ![Silk Card preview](preview.png)
 
@@ -37,8 +37,17 @@
 | 能源 | **Power Flow**（太阳能→家庭→电网 流动动画）· **Tariff**（分时电价）· Storage · EV · Water（漏水报警）· Speedtest |
 | 户外与生活 | Car · Mower · Irrigation · Plant · Forecast（7天）· Moon · UV · Openings · Security · Upkeep · 3D Printer · Appliance |
 | 容器与工具 | **Tabs** · **Expander** · **Carousel** · **Launcher** · **Search** · **Assist** · Say(TTS) · **QR**（自研编码器）· Photo · World Clock · Now Playing · Radio |
+| 进阶图表 | Sankey · Treemap · Radar · 年度热力图 · Gantt · 散点 · 直方图 · K线 · 瀑布 · 箱线 · 堆叠 · 环形 · Sparkbar · 趋势 · Delta · 小多图 |
+| 能源进阶 | 设备用电排行 · 碳强度 · 费用预测 · 峰值 · 光伏预报 · 自用率 · 待机功耗 · 月度目标 |
+| 服务器与网络 | Ping · Docker · 服务器状态 · 带宽 · WAN · VPN · 证书 · 备份 |
+| 生活 | 购物 · 餐谱 · 家务 · 用药 · 宠物 · 垃圾 · 生日 · 健身 · 睡眠 · 饮水 |
+| 出行 | 公交 · 通勤 · 航班 · 快递 · 油价 · 停车 |
+| 安防进阶 | 摄像头墙 · 门铃 · 移动时间线 · 访客记录 · 区域 · 紧急 |
+| HA 系统 | 实例 · 集成健康 · 失联实体 · 自动化审计 · 数据库 · 加载项 · 错误日志 · 重启 |
+| 氛围 | 名言 · 今天 · 水族箱 · 壁炉 · 情景灯光 · 晚安 · 起床 · 番茄钟 |
+| 小众域 | 热水器 · 阀门 · 警报器 · 文本 · 日期时间 · 二元传感器 |
 
-完整画廊（150+ 变体）：[gallery.png](gallery.png) · 本地体验：`npm run demo`
+完整画廊（320+ 变体）：[gallery.png](gallery.png) · 本地体验：`npm run demo`
 
 ## 安装
 

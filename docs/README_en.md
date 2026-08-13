@@ -3,7 +3,7 @@
 [한국어](../README.md) | **English** | [中文](README_zh.md) | [日本語](README_ja.md)
 
 **A buttery-smooth card suite for Home Assistant.**
-From a graph you scrub like a stock app, to a light you dim by dragging the card itself, to a whole room summarized in one row — 91 cards, one design language. Zero config required to look great.
+From a graph you scrub like a stock app, to a light you dim by dragging the card itself, to a whole room summarized in one row — 191 cards, one design language. Zero config required to look great.
 
 ![Silk Card preview](preview.png)
 
@@ -23,7 +23,7 @@ Existing graph cards make you choose: minimal but frozen in time, or powerful bu
 - **Long ranges that just work** — short windows use raw history; longer windows automatically switch to Home Assistant long-term statistics, so a 1-month graph works even after the recorder purges.
 - **Tiny** — hand-rolled SVG rendering, no charting library. One small JS file.
 
-## The 91 cards
+## The 191 cards
 
 Every type follows `custom:silk-<name>-card` (the graph alone is `custom:silk-card`).
 
@@ -37,8 +37,17 @@ Every type follows `custom:silk-<name>-card` (the graph alone is `custom:silk-ca
 | Energy | **Power Flow** (animated solar→home→grid) · **Tariff** (hourly prices) · Storage · EV · Water (leak alarm) · Speedtest |
 | Outdoors & life | Car · Mower · Irrigation · Plant · Forecast (7-day) · Moon · UV · Openings · Security verdict · Upkeep · 3D Printer · Appliance |
 | Containers & utils | **Tabs** · **Expander** · **Carousel** · **Launcher** · **Search** · **Assist** · Say (TTS) · **QR** (self-written encoder) · Photo · World Clock · Now Playing · Radio |
+| Advanced charts | Sankey · Treemap · Radar · Year heatmap · Gantt · Scatter · Histogram · Candle · Waterfall · Boxplot · Stacked · Donut · Sparkbar · Trend · Delta · Small multiples |
+| Energy deeper | Per-device breakdown · Carbon intensity · Cost projection · Peak · Solar forecast · Self-consumption · Standby hunter · Monthly goal |
+| Servers & network | Ping grid · Docker · Server stats · Bandwidth · WAN · VPN · Certificates · Backups |
+| Household | Shopping · Meals · Chores · Meds · Pet · Bins · Birthdays · Fitness · Sleep · Hydration |
+| Transit & outside | Departures · Commute · Flight · Packages · Fuel · Parking |
+| Security deeper | Camera wall · Doorbell · Motion timeline · Visitor log · Zones · Panic |
+| HA system | Instance · Integration health · Dead entities · Automation audit · Database · Add-ons · Error log · Restart |
+| Ambient | Quote · Today · Aquarium · Fireplace · Moods · Goodnight · Wake-up · Pomodoro |
+| Niche domains | Water heater · Valve · Siren · Text · Date & time · Binary detail |
 
-Full gallery (150+ variants): [gallery.png](gallery.png) · Try it locally: `npm run demo`
+Full gallery (320+ variants): [gallery.png](gallery.png) · Try it locally: `npm run demo`
 
 ## Install
 

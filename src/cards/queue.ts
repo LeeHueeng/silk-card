@@ -243,11 +243,13 @@ export class SilkQueueCard extends LitElement {
     const hass = this.hass!;
     const queueEntity = this._config?.queue_entity;
     let raw: unknown[] | undefined;
+    let note: string | undefined;
 
     if (queueEntity) {
       const source = hass.states[queueEntity];
-      if (!source) return { items: [], note: `Queue entity not found: ${queueEntity}` };
-      if (!isUnavailable(source)) {
+      if (!source) {
+        note = `Queue entity not found: ${queueEntity}`;
+      } else if (!isUnavailable(source)) {
         const text = source.state.trim();
         if (text.startsWith('[') || text.startsWith('{')) {
           try {
@@ -258,15 +260,16 @@ export class SilkQueueCard extends LitElement {
             }
           } catch {
             // A truncated 255-char state is the usual cause — fall through to
-            // the attributes, and to the note below if those are empty too.
+            // the attributes, and to the player after that.
           }
         }
         raw ??= firstArray(source.attributes, ['items', 'queue', 'data', 'tracks']);
       }
-      if (!raw) return { items: [], note: `No queue in ${queueEntity}` };
     }
 
     if (!raw) {
+      // The player is the fallback even when a queue_entity is configured —
+      // a silent source should not blank a card that could still say something.
       const a = player.attributes;
       raw = Array.isArray(a.queue) && a.queue.length ? (a.queue as unknown[]) : undefined;
       // `media_playlist` is a playlist NAME on most integrations; only an
@@ -277,15 +280,14 @@ export class SilkQueueCard extends LitElement {
     }
 
     if (!raw) {
-      return {
-        items: [],
-        note: this._config?.queue_entity ? 'No queue reported' : 'This player reports no queue',
-      };
+      return { items: [], note: note ?? 'This player reports no queue' };
     }
     const items = raw
       .map((entry) => coerceItem(entry))
       .filter((item): item is QueueItem => item !== null);
-    return items.length ? { items } : { items: [], note: 'No queue reported' };
+    // A list was found but held nothing the card could read: say so plainly
+    // rather than claiming the player publishes no queue at all.
+    return items.length ? { items } : { items: [], note: 'Queue is empty' };
   }
 
   /**
@@ -423,12 +425,16 @@ export class SilkQueueCard extends LitElement {
         <div class="header">
           <div class="hname" title=${name}>${name}</div>
           ${items.length
-            ? html`<span class="count">${current >= 0 ? current + 1 : 1}/${items.length}</span>`
+            ? html`
+                <span class="count">
+                  ${current >= 0 ? `${current + 1}/${items.length}` : items.length}
+                </span>
+              `
             : nothing}
         </div>
         ${shown.length
           ? html`
-              <div class="rows ${actionable ? 'actionable' : ''}">
+              <div class="rows">
                 ${shown.map((item, i) =>
                   this._renderRow(item, start + i, start + i === current, playing, actionable)
                 )}
@@ -477,6 +483,8 @@ export class SilkQueueCard extends LitElement {
         opacity: 0.75;
         font-variant-numeric: tabular-nums;
       }
+      /* In a sections grid the card's height is fixed, so a long queue scrolls
+         inside the card instead of being silently clipped. */
       .rows {
         flex: 1;
         min-height: 0;
@@ -484,8 +492,12 @@ export class SilkQueueCard extends LitElement {
         flex-direction: column;
         gap: 1px;
         margin: 0 -6px;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        scrollbar-width: thin;
       }
       .row {
+        flex: none;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -502,9 +514,6 @@ export class SilkQueueCard extends LitElement {
         cursor: pointer;
         outline: none;
         transition: background 150ms ease-out;
-      }
-      .rows:not(.actionable) .row {
-        cursor: pointer;
       }
       .row:hover {
         background: rgba(var(--rgb-primary-text-color, 127, 127, 127), 0.05);

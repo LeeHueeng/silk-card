@@ -3,7 +3,7 @@
 **한국어** | [English](docs/README_en.md) | [中文](docs/README_zh.md) | [日本語](docs/README_ja.md)
 
 **Home Assistant를 위한 버터처럼 부드러운 카드 스위트.**
-주식 앱처럼 문지르는 그래프부터, 카드 전체를 드래그해 밝기를 조절하는 조명, 방 하나를 한 줄로 요약하는 룸 카드까지 — 91종의 카드가 하나의 디자인 언어를 씁니다. 설정 없이도 그냥 예쁩니다.
+주식 앱처럼 문지르는 그래프부터, 카드 전체를 드래그해 밝기를 조절하는 조명, 방 하나를 한 줄로 요약하는 룸 카드까지 — 191종의 카드가 하나의 디자인 언어를 씁니다. 설정 없이도 그냥 예쁩니다.
 
 ![Silk Card preview](docs/preview.png)
 
@@ -23,7 +23,7 @@
 - **긴 범위도 그냥 동작** — 짧은 창은 원시 히스토리를, 긴 창은 Home Assistant 장기 통계를 자동으로 사용합니다. recorder가 오래된 데이터를 지워도 1개월 그래프가 나옵니다.
 - **초경량** — 차트 라이브러리 없이 SVG를 직접 렌더링. 작은 JS 파일 하나가 전부입니다.
 
-## 카드 91종
+## 카드 191종
 
 타입은 전부 `custom:silk-<이름>-card` 패턴입니다 (그래프만 `custom:silk-card`).
 
@@ -37,8 +37,17 @@
 | 에너지 | **Power Flow**(태양광→집→그리드 흐름 애니메이션) · **Tariff**(시간대별 요금) · Storage(가정용 배터리) · EV(충전) · Water(누수 경보) · Speedtest |
 | 생활·바깥 | Car · Mower · Irrigation(구역별 관수) · Plant · Forecast(주간) · Moon(위상) · UV · Openings(개폐 현황) · Security(집 전체 판정) · Upkeep(소모품) · Printer(3D) · Appliance(세탁기) |
 | 유틸 | **Search**(엔티티 검색) · **Assist**(대화) · Say(TTS) · **QR**(와이파이 QR, 자체 인코더) · Photo(액자) · World Clock · Now Playing(아트워크 히어로) · Radio(프리셋) |
+| 차트 심화 | Sankey(흐름) · Treemap · Radar · Heatmap(연간) · Gantt(언제 켜졌나) · Scatter · Histogram · Candle · Waterfall · Boxplot · Stacked · Donut · Sparkbar · Trend · Delta · Small Multiples |
+| 에너지 심화 | 기기별 소비 랭킹 · 탄소집약도 · 요금 예측 · 피크 · 태양광 예보 · 자가소비율 · 대기전력 · 월 목표 |
+| 서버·네트워크 | Ping · Docker · Server Stats · Bandwidth · WAN · VPN · 인증서 만료 · 백업 |
+| 생활 | 장보기 · 식단 · 집안일 · 복약 · 반려동물 · 쓰레기 배출 · 생일 · 피트니스 · 수면 · 수분 |
+| 이동·외부 | 대중교통 · 통근 · 항공편 · 택배 · 주유소 · 주차 |
+| 보안 심화 | 카메라 월 · 초인종 · 모션 타임라인 · 방문기록 · 존 재실 · 패닉 |
+| HA 시스템 | 인스턴스 정보 · 통합 건강도 · 죽은 엔티티 · 자동화 감사 · DB 크기 · 애드온 · 에러로그 · 재시작 |
+| 앰비언트 | 명언 · 오늘 · 어항 · 벽난로 · 무드조명 · 굿나잇 · 기상조명 · 뽀모도로 |
+| 니치 도메인 | 온수기 · 밸브 · 사이렌 · 텍스트 · 날짜시간 · 바이너리 상세 |
 
-전체 갤러리(150+ 변형): [docs/gallery.png](docs/gallery.png) · 로컬에서 만져보기: `npm run demo`
+전체 갤러리(320+ 변형): [docs/gallery.png](docs/gallery.png) · 로컬에서 만져보기: `npm run demo`
 
 ## 설치
 

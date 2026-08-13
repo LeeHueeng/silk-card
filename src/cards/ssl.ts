@@ -299,10 +299,13 @@ export class SilkCertCard extends LitElement {
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .chip.soon {
+      /* A read-out, not a control: it does not react to the pointer. */
+      .chip.soon,
+      .chip.soon:hover {
         flex: none;
         cursor: default;
         font-variant-numeric: tabular-nums;
+        background: rgba(var(--rgb-primary-text-color, 127, 127, 127), 0.06);
       }
       .chip.soon.warn {
         color: var(--warning-color, #ffa600);

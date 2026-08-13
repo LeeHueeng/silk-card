@@ -271,6 +271,9 @@ export class SilkActivityCard extends LitElement {
   private _renderActivity(activity: SilkActivity, index: number): TemplateResult {
     const hass = this.hass;
     const stateObj = activity.state_entity ? hass?.states[activity.state_entity] : undefined;
+    // The indicator being offline says nothing about the steps, which may not
+    // touch it at all: the glyph dims to admit it cannot report, the macro
+    // still runs.
     const unavailable = Boolean(activity.state_entity) && isUnavailable(stateObj);
     const active = !unavailable && isActive(stateObj);
     const progress = this._progress[index];
@@ -386,7 +389,7 @@ export class SilkActivityCard extends LitElement {
       .tile.running {
         color: var(--silk-accent);
       }
-      .tile.gone {
+      .tile.gone .glyph {
         opacity: 0.45;
       }
       .glyph {

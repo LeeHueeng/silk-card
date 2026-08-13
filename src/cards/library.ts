@@ -21,7 +21,10 @@ export interface SilkLibraryCardConfig extends LovelaceCardConfig {
   /**
    * Service fired on a poster tap: `'domain.service'`, or `{ service, data }`.
    * String values in the data may hold `{id}`, `{title}` and `{year}`
-   * placeholders. Without it a poster is not a control at all.
+   * placeholders — e.g. `{ entity_id: 'media_player.tv',
+   * media_content_id: '{id}' }`. The service is called with exactly the data
+   * given (empty when none is), and without `tap_service` a poster is not a
+   * control at all.
    */
   tap_service?: string | { service: string; data?: Record<string, unknown> };
   /** Data for `tap_service` when it is given as a bare service string. */
@@ -269,12 +272,17 @@ export class SilkLibraryCard extends LitElement {
     // the tap falls through to the card and opens more-info on the source.
     return actionable
       ? html`
-          <button class="tile" title=${hover} aria-label=${hover} @click=${(ev: Event) =>
-            this._onTileClick(ev, item)}>
+          <button
+            class="tile"
+            role="listitem"
+            title=${hover}
+            aria-label=${hover}
+            @click=${(ev: Event) => this._onTileClick(ev, item)}
+          >
             ${body}
           </button>
         `
-      : html`<div class="tile static" title=${hover}>${body}</div>`;
+      : html`<div class="tile static" role="listitem" title=${hover}>${body}</div>`;
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -365,8 +373,8 @@ export class SilkLibraryCard extends LitElement {
         overflow-y: hidden;
         scroll-snap-type: x mandatory;
         scroll-padding-left: 0;
+        /* Horizontal overscroll stays here; vertical scrolling is the page's. */
         overscroll-behavior-x: contain;
-        touch-action: pan-x;
         /* The bar would eat poster height on desktop; the row scrolls by drag,
            wheel and keyboard focus regardless. */
         scrollbar-width: none;

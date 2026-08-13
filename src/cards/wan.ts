@@ -93,9 +93,10 @@ registerEditor(
   }
 );
 
-/** '15d 4h' / '4h 12m' / '9m' — two units is always enough to trust a link. */
+/** '15d 4h' / '4h 12m' / '9m' / '42s' — two units always read a link honestly. */
 function durationLabel(ms: number): string {
   const sec = Math.max(0, Math.floor(ms / 1000));
+  if (sec < 60) return `${sec}s`;
   const days = Math.floor(sec / 86400);
   const hours = Math.floor((sec % 86400) / 3600);
   const minutes = Math.floor((sec % 3600) / 60);
@@ -145,7 +146,9 @@ export class SilkWanCard extends LitElement {
           id.startsWith('binary_sensor.') &&
           hass.states[id].attributes.device_class === 'connectivity'
       ) ?? ids.find((id) => id.startsWith('binary_sensor.'));
-    const ip = ids.find((id) => id.startsWith('sensor.') && /(^|_)(external|public|wan)?_?ip/.test(id));
+    const ip = ids.find(
+      (id) => id.startsWith('sensor.') && /(^|_)(external_|public_|wan_)?ip(_address)?$/.test(id)
+    );
     return { type: 'custom:silk-wan-card', entity, ip };
   }
 
@@ -384,15 +387,18 @@ export class SilkWanCard extends LitElement {
       >
         <div class="top">
           <div class="head">
-            <div class="word ${unavailable ? 'idle' : online ? 'up' : 'down'}" title=${name}>
-              ${word}
+            <div class="word ${unavailable ? 'idle' : online ? 'up' : 'down'}">${word}</div>
+            <!-- Uptime leads: it is the fact that survives a narrow card. -->
+            <div class="since" title=${`${name} · ${since}`}>
+              ${since}<span class="sep">·</span>${name}
             </div>
-            <div class="since">${name}<span class="sep">·</span>${since}</div>
           </div>
           <div class="chips">
             ${ip
               ? html`<button
-                  class="chip ip ${this._copied ? 'flash' : ''}"
+                  class="chip ip ${this._copied === 'ok' ? 'flash' : ''} ${this._copied === 'fail'
+                    ? 'said'
+                    : ''}"
                   title=${`Copy ${ip}`}
                   aria-label=${`Copy public IP ${ip}`}
                   @click=${(ev: Event) => this._onIpClick(ev, ip)}
@@ -498,6 +504,10 @@ export class SilkWanCard extends LitElement {
       .chip.flash {
         color: var(--silk-accent);
         background: color-mix(in srgb, var(--silk-accent) 16%, transparent);
+        animation: silk-wan-swap 200ms var(--silk-ease-out);
+      }
+      /* A refused clipboard says so plainly — it is not an accent moment. */
+      .chip.said {
         animation: silk-wan-swap 200ms var(--silk-ease-out);
       }
       .bar {

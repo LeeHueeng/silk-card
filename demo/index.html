@@ -76,6 +76,7 @@ import '../dist/silk-card.js';
 /* ---------- minimal HA element stand-ins ---------- */
 
 import { MDI_PATHS } from './icons.js';
+import { EXTRA_STATES, EXTRA_SECTIONS, EXTRA_WS } from './extra.js';
 
 const DOMAIN_ICONS = {
   light: 'mdi:lightbulb', switch: 'mdi:power-socket-eu', input_boolean: 'mdi:toggle-switch',
@@ -398,6 +399,8 @@ const states = Object.fromEntries([
   E('sensor.button_battery', '18', { friendly_name: 'Wall button', unit_of_measurement: '%', device_class: 'battery' }),
 ]);
 
+for (const [id, obj] of EXTRA_STATES) states[id] = obj;
+
 function genHistory(id, start, end, step) {
   const rows = [];
   for (let t = start; t <= end; t += step) rows.push({ s: valueAt(id, t).toFixed(2), lu: t });
@@ -564,6 +567,8 @@ const hassBase = {
         return [id, rows];
       }));
     }
+    const extra = await EXTRA_WS(msg, { start, end, SENSORS, valueAt });
+    if (extra !== undefined) return extra;
     throw new Error('unmocked: ' + msg.type);
   },
 };
@@ -806,6 +811,7 @@ const SECTIONS = [
     ['h3x', { type: 'custom:silk-shutter-card', entity: 'cover.living_blinds' }],
   ]],
 ];
+SECTIONS.push(...EXTRA_SECTIONS);
 
 const cards = [];
 const main = document.getElementById('main');
