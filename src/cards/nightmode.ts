@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, toggleEntity, moreInfo, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-night-card',
@@ -42,22 +42,44 @@ const STEP_GAP_MS = 260;
 
 const EDITOR_TAG = 'silk-night-card-editor';
 
-// Steps are a YAML roster ({name, entity, desired, service, data}); the editor
-// owns the card-level options only.
-registerEditor(
-  EDITOR_TAG,
-  [
+// `data` stays an object box: a service-call data mapping is the one field no
+// selector can enumerate. Everything else is a real control.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'steps',
+  title: '단계',
+  addLabel: '단계 추가',
+  row: [
+    { name: 'name', label: '단계 이름', selector: { text: {} } },
+    { name: 'entity', label: '엔티티', selector: { entity: {} } },
+    {
+      name: 'desired',
+      label: '목표 상태',
+      selector: {
+        select: {
+          mode: 'dropdown',
+          options: [
+            { value: 'off', label: '꺼짐' },
+            { value: 'on', label: '켜짐' },
+            { value: 'locked', label: '잠김' },
+            { value: 'closed', label: '닫힘' },
+          ],
+        },
+      },
+    },
+    { name: 'service', label: '대신 호출할 서비스 (domain.service)', selector: { text: {} } },
+    { name: 'data', label: '서비스 데이터', selector: { object: {} } },
+  ],
+  blank: { name: '새 단계', entity: '', desired: 'off' },
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'color', selector: { ui_color: {} } },
-    { name: 'steps', required: true, selector: { object: {} } },
   ],
-  {
+  labels: {
     name: '이름',
     color: '강조 색상',
-    steps: '단계 목록 — {name, entity, desired: off|on|locked|closed, service, data}',
   },
-  { name: 'Goodnight' }
-);
+  defaults: { name: 'Goodnight' },
+});
 
 /**
  * A step is satisfied when its entity literally reports the desired state.

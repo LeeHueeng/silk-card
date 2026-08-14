@@ -14,7 +14,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -81,20 +81,27 @@ function fitText(text: string, maxChars: number): string {
 
 const EDITOR_TAG = 'silk-radar-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+registerRowsEditor(EDITOR_TAG, {
+  field: 'metrics',
+  title: '지표',
+  addLabel: '지표 추가',
+  row: [
+    { name: 'entity', label: '엔티티', selector: { entity: { domain: ['sensor', 'number', 'input_number'] } } },
+    { name: 'label', label: '이름', selector: { text: {} } },
+    { name: 'min', label: '최솟값', selector: { number: { mode: 'box', step: 'any' } } },
+    { name: 'max', label: '최댓값', selector: { number: { mode: 'box', step: 'any' } } },
+  ],
+  blank: { entity: '' },
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'compare', selector: { boolean: {} } },
-    { name: 'metrics', required: true, selector: { object: {} } },
   ],
-  {
-    name: 'Name',
-    compare: 'Compare with yesterday',
-    metrics: 'Metrics — list of {entity, label, min, max}',
+  labels: {
+    name: '이름',
+    compare: '어제와 비교',
   },
-  { compare: false }
-);
+  defaults: { compare: false },
+});
 
 @customElement('silk-radar-card')
 export class SilkRadarCard extends LitElement {
