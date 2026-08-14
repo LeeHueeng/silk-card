@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-standby-card',
@@ -12,7 +12,7 @@ export const META = {
   description: 'The devices quietly costing you money.',
 };
 
-/** One watched device. YAML-only — the visual editor covers the thresholds. */
+/** One watched device — a row in the visual editor. */
 export interface SilkStandbyDevice {
   /** Power sensor (W, kW or mW — the unit is read from the entity). */
   entity: string;
@@ -46,9 +46,25 @@ const PENDING_MS = 2000;
 
 const EDITOR_TAG = 'silk-standby-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// Devices are rows, not YAML: each carries a power sensor plus an optional
+// name and its own switch, which no flat form can hold.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'devices',
+  title: '기기 (비우면 자동 탐색)',
+  addLabel: '기기 추가',
+  blank: { entity: '' },
+  row: [
+    { name: 'entity', label: '전력 센서', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'name', label: '이름', selector: { text: {} } },
+    {
+      name: 'switch',
+      label: '끄기 스위치',
+      selector: {
+        entity: { domain: ['switch', 'light', 'input_boolean', 'fan', 'media_player'] },
+      },
+    },
+  ],
+  schema: [
     { name: 'name', selector: { text: {} } },
     {
       name: '',
@@ -68,7 +84,7 @@ registerEditor(
     },
     { name: 'color', selector: { ui_color: {} } },
   ],
-  {
+  labels: {
     name: '이름',
     min: '대기 시작(W)',
     max: '대기 상한(W)',
@@ -76,8 +92,8 @@ registerEditor(
     currency: '통화',
     color: '강조 색상',
   },
-  { min: DEFAULT_MIN, max: DEFAULT_MAX, currency: DEFAULT_CURRENCY }
-);
+  defaults: { min: DEFAULT_MIN, max: DEFAULT_MAX, currency: DEFAULT_CURRENCY },
+});
 
 /** Factor that turns the entity's own unit into watts. */
 function wattScale(stateObj: HassEntity): number {

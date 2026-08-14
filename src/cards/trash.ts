@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-trash-card',
@@ -22,7 +22,7 @@ export interface SilkBinConfig {
 }
 
 export interface SilkTrashCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the collections this card watches. */
+  /** The collections this card watches. */
   bins: SilkBinConfig[];
   name?: string;
 }
@@ -45,13 +45,27 @@ const DAY_UNITS = new Set(['d', 'day', 'days']);
 
 const EDITOR_TAG = 'silk-trash-card-editor';
 
-// Bins are a YAML list (name + entity + colour per bin); the editor owns the title.
-registerEditor(
-  EDITOR_TAG,
-  [{ name: 'name', selector: { text: {} } }],
-  { name: 'Name' },
-  { name: 'Bins' }
-);
+// One row per bin — name, sensor, kerbside colour and icon — because a bin is
+// identified by its colour and no flat form can hold four fields per entry.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'bins',
+  title: '수거함',
+  addLabel: '수거함 추가',
+  blank: { name: '새 수거함', entity: '' },
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    {
+      name: 'entity',
+      label: '수거일 센서',
+      selector: { entity: { domain: ['sensor', 'input_datetime'] } },
+    },
+    { name: 'color', label: '색상', selector: { ui_color: {} } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+  ],
+  schema: [{ name: 'name', selector: { text: {} } }],
+  labels: { name: '이름' },
+  defaults: { name: 'Bins' },
+});
 
 /** 'YYYY-MM-DD' and ISO stamps, read as local time (Date.parse would shift a bare date). */
 function parseDateish(raw: string): number | null {

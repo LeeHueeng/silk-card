@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, toggleEntity, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-vpn-card',
@@ -23,7 +23,7 @@ export interface VpnPeerConfig {
 }
 
 export interface SilkVpnCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the peers this card watches. */
+  /** The peers this card watches. */
   peers: VpnPeerConfig[];
   /** Optional tunnel switch, rendered as a header switch. */
   toggle?: string;
@@ -52,18 +52,37 @@ const IDLE_STATES = new Set([
 
 const EDITOR_TAG = 'silk-vpn-card-editor';
 
-// Peers stay YAML-only — three nested entity pickers per row would dwarf the
-// card; the editor owns the title, the tunnel switch and the accent.
-registerEditor(
-  EDITOR_TAG,
-  [
+// A peer is three entities and a name, so it gets a row of its own; the tunnel
+// switch, title and accent stay above the roster.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'peers',
+  title: '피어',
+  addLabel: '피어 추가',
+  blank: { entity: '' },
+  row: [
+    {
+      name: 'entity',
+      label: '연결 상태 엔티티',
+      selector: {
+        entity: { domain: ['device_tracker', 'binary_sensor', 'sensor', 'switch', 'person'] },
+      },
+    },
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'ip', label: '주소 엔티티', selector: { entity: { domain: ['sensor'] } } },
+    {
+      name: 'last_seen',
+      label: '마지막 접속 엔티티',
+      selector: { entity: { domain: ['sensor'] } },
+    },
+  ],
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'toggle', selector: { entity: { domain: ['switch', 'input_boolean'] } } },
     { name: 'color', selector: { ui_color: {} } },
   ],
-  { name: '이름', toggle: '터널 스위치', color: '강조 색상' },
-  { name: 'VPN' }
-);
+  labels: { name: '이름', toggle: '터널 스위치', color: '강조 색상' },
+  defaults: { name: 'VPN' },
+});
 
 /** '<60s → just now, <1h → Nm ago, <24h → Hh ago, else Dd ago'; bad input → null. */
 function relativeTime(ms: number): string | null {

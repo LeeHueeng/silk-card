@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -21,7 +21,7 @@ export interface WaterfallItem {
 }
 
 export interface SilkWaterfallCardConfig extends LovelaceCardConfig {
-  /** YAML: the ordered contributions. Each needs `entity` or `value`. */
+  /** The ordered contributions. Each needs `entity` or `value`. */
   items: WaterfallItem[];
   name?: string;
   /** Unit for the labels; the first entity's own unit by default. */
@@ -71,9 +71,27 @@ function fitText(text: string, width: number, charPx: number): string {
 
 const EDITOR_TAG = 'silk-waterfall-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// Each contribution is a row: a live entity or a fixed number, plus its label.
+// The order is the story the chart tells, so the rows reorder in place.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'items',
+  title: '항목 (위에서 아래 순서로 누적)',
+  addLabel: '항목 추가',
+  blank: { value: 0 },
+  row: [
+    {
+      name: 'entity',
+      label: '엔티티',
+      selector: { entity: { domain: ['sensor', 'number', 'input_number', 'counter'] } },
+    },
+    {
+      name: 'value',
+      label: '고정 값 (엔티티 없을 때)',
+      selector: { number: { mode: 'box', step: 'any' } },
+    },
+    { name: 'name', label: '이름', selector: { text: {} } },
+  ],
+  schema: [
     { name: 'name', selector: { text: {} } },
     {
       name: '',
@@ -83,11 +101,11 @@ registerEditor(
         { name: 'start', selector: { number: { mode: 'box', step: 'any' } } },
       ],
     },
-    { name: 'color', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { name: 'Name', unit: 'Unit', start: 'Start value', color: 'Color' },
-  { start: 0 }
-);
+  labels: { name: '이름', unit: '단위', start: '시작 값', color: '강조 색상' },
+  defaults: { start: 0 },
+});
 
 @customElement('silk-waterfall-card')
 export class SilkWaterfallCard extends LitElement {

@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-breadcrumb-card',
@@ -19,7 +19,7 @@ export interface BreadcrumbItemConfig {
 }
 
 export interface SilkBreadcrumbCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the trail, oldest first. Omit and set `auto` to derive it. */
+  /** The trail, oldest first. Omit and set `auto` to derive it. */
   items?: BreadcrumbItemConfig[];
   /** Derive the trail from the URL when `items` is omitted. */
   auto?: boolean;
@@ -29,16 +29,23 @@ export interface SilkBreadcrumbCardConfig extends LovelaceCardConfig {
 
 const EDITOR_TAG = 'silk-breadcrumb-card-editor';
 
-// `items` stays YAML-only — a list of {label, path} has no honest ha-form
-// selector, and `auto` covers the common case without any list at all.
-registerEditor(
-  EDITOR_TAG,
-  [
+// The trail is a list of {label, path}: one ha-form per crumb, reorderable,
+// with `auto` above it for the derive-from-the-URL case.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'items',
+  title: '경로 항목',
+  addLabel: '항목 추가',
+  blank: { label: '새 항목' },
+  row: [
+    { name: 'label', label: '이름', selector: { text: {} } },
+    { name: 'path', label: '주소', selector: { text: {} } },
+  ],
+  schema: [
     { name: 'auto', selector: { boolean: {} } },
     { name: 'name', selector: { text: {} } },
   ],
-  { auto: 'Derive the trail from the URL', name: 'Accessible label' }
-);
+  labels: { auto: 'URL에서 자동 생성', name: '접근성 레이블' },
+});
 
 /** 'living-room' → 'Living Room'; URL-escapes are decoded first. */
 function humanizeSegment(segment: string): string {

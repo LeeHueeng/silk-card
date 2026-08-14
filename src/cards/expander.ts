@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-expander-card',
@@ -15,7 +15,8 @@ export const META = {
 export interface SilkExpanderCardConfig extends LovelaceCardConfig {
   title: string;
   icon?: string;
-  /** YAML-only: the body — any list of Lovelace card configs. */
+  /** The body — any list of Lovelace card configs, one row each in the editor
+   *  (type + entity; every other key is kept as written). */
   cards?: LovelaceCardConfig[];
   expanded?: boolean;
   /** Its state rides along in the header as a chip, collapsed or not. */
@@ -35,9 +36,21 @@ interface CardHelpers {
 
 const EDITOR_TAG = 'silk-expander-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// The body is rows: one card per row, named by its type and — for the
+// tile-shaped cards that fill an expander — its entity. Keys the fields do not
+// mention survive every edit, so a hand-written card keeps working after its
+// neighbour is deleted.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'cards',
+  title: '펼침 영역 카드',
+  addLabel: '카드 추가',
+  row: [
+    { name: 'type', label: '카드 종류 (예: tile, custom:silk-toggle-card)', selector: { text: {} } },
+    { name: 'entity', label: '엔티티', selector: { entity: {} } },
+    { name: 'name', label: '이름', selector: { text: {} } },
+  ],
+  blank: { type: 'tile' },
+  schema: [
     { name: 'title', required: true, selector: { text: {} } },
     {
       name: '',
@@ -49,14 +62,14 @@ registerEditor(
     },
     { name: 'expanded', selector: { boolean: {} } },
   ],
-  {
-    title: 'Title',
-    icon: 'Icon',
-    summary_entity: 'Summary entity',
-    expanded: 'Open by default',
+  labels: {
+    title: '제목',
+    icon: '아이콘',
+    summary_entity: '요약 엔티티',
+    expanded: '기본으로 펼침',
   },
-  { expanded: false }
-);
+  defaults: { expanded: false },
+});
 
 /** Body reveal duration; the CSS transition and the release fallback share it. */
 const OPEN_MS = 250;

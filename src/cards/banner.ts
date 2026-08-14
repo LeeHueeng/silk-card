@@ -45,9 +45,9 @@ export interface SilkBannerCardConfig extends LovelaceCardConfig {
   level?: BannerLevel;
   /** Default true — the X remembers itself until the words change. */
   dismissible?: boolean;
-  /** YAML-only: one button on the right. */
+  /** One button on the right. */
   action?: BannerAction;
-  /** YAML-only: the banner only exists while this matches. */
+  /** The banner only exists while this matches. */
   condition?: BannerCondition;
 }
 
@@ -97,8 +97,13 @@ function textKey(title: string | undefined, message: string): string {
 
 const EDITOR_TAG = 'silk-banner-card-editor';
 
-// `action` and `condition` stay YAML-only: nested mappings are YAML territory,
-// and ha-form has nothing honest to render for them.
+/**
+ * `action` and `condition` are single nested mappings, which is exactly what an
+ * expandable section is: ha-form addresses its fields under the section's own
+ * name, so the form writes `{action: {label, service}}` without any flattening.
+ * Only `action.data` — an arbitrary mapping of service fields — stays a YAML
+ * box, because no selector can know a service's own field list.
+ */
 registerEditor(
   EDITOR_TAG,
   [
@@ -126,13 +131,53 @@ registerEditor(
       ],
     },
     { name: 'dismissible', selector: { boolean: {} } },
+    {
+      name: 'action',
+      type: 'expandable',
+      title: '동작 버튼',
+      schema: [
+        { name: 'label', selector: { text: {} } },
+        { name: 'service', selector: { text: {} } },
+        { name: 'data', selector: { object: {} } },
+        { name: 'navigation_path', selector: { text: {} } },
+        { name: 'url', selector: { text: {} } },
+      ],
+    },
+    {
+      name: 'condition',
+      type: 'expandable',
+      title: '표시 조건',
+      schema: [
+        { name: 'entity', selector: { entity: {} } },
+        { name: 'state', selector: { text: {} } },
+        {
+          name: '',
+          type: 'grid',
+          schema: [
+            { name: 'above', selector: { number: { mode: 'box', step: 'any' } } },
+            { name: 'below', selector: { number: { mode: 'box', step: 'any' } } },
+          ],
+        },
+      ],
+    },
   ],
   {
-    message: 'Message',
-    title: 'Title',
-    icon: 'Icon',
-    level: 'Level',
-    dismissible: 'Allow dismissing',
+    message: '메시지',
+    title: '제목',
+    icon: '아이콘',
+    level: '단계',
+    dismissible: '닫기 허용',
+    action: '동작 버튼',
+    label: '버튼 이름',
+    service: '서비스 (domain.service)',
+    data: '서비스 데이터',
+    navigation_path: '이동 경로 (/lovelace/kitchen)',
+    url: '주소 (https://…)',
+    condition: '표시 조건',
+    entity: '엔티티',
+    state: '상태가 같을 때',
+    above: '초과',
+    below: '미만',
   },
   { level: 'info', dismissible: true }
 );

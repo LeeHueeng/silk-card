@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-birthday-card',
@@ -21,7 +21,7 @@ export interface BirthdayPerson {
 }
 
 export interface SilkBirthdayCardConfig extends LovelaceCardConfig {
-  /** YAML-only list of people (ha-form has no editor for object lists). */
+  /** Hand-listed people; the editor authors them one row at a time. */
   people?: BirthdayPerson[];
   /** Calendar entity whose matching events are read as birthdays. */
   calendar?: string;
@@ -162,9 +162,19 @@ function readSummary(summary: string, keyword: string): { name: string; birthYea
 
 const EDITOR_TAG = 'silk-birthday-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// `people` is a list of {name, date, photo} objects: one ha-form per person,
+// with a real date picker, so a hand-kept birthday list needs no YAML.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'people',
+  title: '사람',
+  addLabel: '사람 추가',
+  blank: { name: '새 사람', date: '2000-01-01' },
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'date', label: '생일', selector: { date: {} } },
+    { name: 'photo', label: '사진 주소', selector: { text: {} } },
+  ],
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'calendar', selector: { entity: { domain: ['calendar'] } } },
     {
@@ -176,14 +186,14 @@ registerEditor(
       ],
     },
   ],
-  {
-    name: 'Name',
-    calendar: 'Birthday calendar',
-    keyword: 'Event keyword',
-    limit: 'Rows shown',
+  labels: {
+    name: '이름',
+    calendar: '생일 캘린더',
+    keyword: '일정 키워드',
+    limit: '표시 줄 수',
   },
-  { keyword: DEFAULT_KEYWORD, limit: DEFAULT_LIMIT }
-);
+  defaults: { keyword: DEFAULT_KEYWORD, limit: DEFAULT_LIMIT },
+});
 
 @customElement('silk-birthday-card')
 export class SilkBirthdayCard extends LitElement {

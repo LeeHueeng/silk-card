@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-maintenance-card',
@@ -24,7 +24,7 @@ export interface SilkMaintenanceItemConfig {
 }
 
 export interface SilkMaintenanceCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the consumables this card tracks. */
+  /** The consumables this card tracks. */
   items: SilkMaintenanceItemConfig[];
   name?: string;
 }
@@ -62,14 +62,38 @@ const TICK_MS = 900_000;
 const DEFAULT_ICON = 'mdi:progress-wrench';
 const EDITOR_TAG = 'silk-maintenance-card-editor';
 
-// Items are a YAML inventory (name + entity + interval per row); the editor
-// owns only the card's title.
-registerEditor(
-  EDITOR_TAG,
-  [{ name: 'name', selector: { text: {} } }],
-  { name: 'Name' },
-  { name: 'Upkeep' }
-);
+/** Today as 'YYYY-MM-DD' — what a freshly added item dates itself from. */
+function isoToday(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// One form per consumable: a life sensor, or a service date plus its interval.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'items',
+  title: '항목',
+  addLabel: '항목 추가',
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    {
+      name: 'entity',
+      label: '엔티티 (잔량/남은 시간)',
+      selector: { entity: { domain: ['sensor', 'number', 'input_number'] } },
+    },
+    { name: 'last', label: '마지막 교체일 (YYYY-MM-DD 또는 엔티티)', selector: { text: {} } },
+    {
+      name: 'interval_days',
+      label: '교체 주기(일)',
+      selector: { number: { min: 1, max: 3650, step: 1, mode: 'box' } },
+    },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+  ],
+  blank: { name: '새 항목', last: isoToday(), interval_days: 90 },
+  schema: [{ name: 'name', selector: { text: {} } }],
+  labels: { name: '이름' },
+  defaults: { name: 'Upkeep' },
+});
 
 /** 'YYYY-MM-DD', 'YYYY-MM-DD HH:MM(:SS)' and ISO stamps — local-time honest. */
 function parseDateish(raw: string): number | null {

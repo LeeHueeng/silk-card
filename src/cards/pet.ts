@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, toggleEntity, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -32,7 +32,7 @@ export interface SilkPetConfig {
 }
 
 export interface SilkPetCardConfig extends LovelaceCardConfig {
-  /** YAML-only: usually one pet, but the card takes a household. */
+  /** Usually one pet, but the card takes a household. */
   pets: SilkPetConfig[];
   name?: string;
 }
@@ -55,13 +55,42 @@ const STALE_DAYS = 14;
 
 const EDITOR_TAG = 'silk-pet-card-editor';
 
-// Pets are a YAML block (photo + meals + walk per pet); the editor owns the title.
-registerEditor(
-  EDITOR_TAG,
-  [{ name: 'name', selector: { text: {} } }],
-  { name: 'Name' },
-  { name: 'Pets' }
-);
+/** Entities a chip can press: a button, a script, or a helper flag. */
+const PRESSABLE = ['button', 'input_button', 'script', 'input_boolean'];
+
+// One form per pet. `meals` is a list *inside* a row, which one ha-form cannot
+// repeat, so it keeps an object field — every other key is a picker.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'pets',
+  title: '반려동물',
+  addLabel: '반려동물 추가',
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+    { name: 'photo', label: '사진 주소', selector: { text: {} } },
+    { name: 'walk', label: '산책 엔티티', selector: { entity: { domain: PRESSABLE } } },
+    { name: 'weight', label: '체중 센서', selector: { entity: { domain: ['sensor'] } } },
+    {
+      name: 'meals',
+      label: '식사 (엔티티 + 이름)',
+      selector: {
+        object: {
+          multiple: true,
+          label_field: 'label',
+          description_field: 'entity',
+          fields: {
+            entity: { label: '엔티티', required: true, selector: { entity: { domain: PRESSABLE } } },
+            label: { label: '이름', selector: { text: {} } },
+          },
+        },
+      },
+    },
+  ],
+  blank: { name: '새 반려동물', icon: DEFAULT_ICON },
+  schema: [{ name: 'name', selector: { text: {} } }],
+  labels: { name: '이름' },
+  defaults: { name: 'Pets' },
+});
 
 /**
  * When an action entity last fired. Buttons and scenes state the timestamp

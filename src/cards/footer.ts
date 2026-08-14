@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { haptic, isUnavailable, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-footer-card',
@@ -24,7 +24,7 @@ export interface FooterLinkConfig {
 export type FooterAlign = 'left' | 'center' | 'right';
 
 export interface SilkFooterCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the link row, in order. */
+  /** The link row, in order — one row each in the editor. */
   links?: FooterLinkConfig[];
   /** A quiet line under the links — attribution, a version, a disclaimer. */
   text?: string;
@@ -49,11 +49,20 @@ const SAFE_URL = /^(https?:|mailto:|tel:|\/|\.\/|#)/i;
 
 const EDITOR_TAG = 'silk-footer-card-editor';
 
-// `links` stays YAML-only — a list of {label, url, path, icon} has no honest
-// ha-form selector, and the rest of the footer is fully editable here.
-registerEditor(
-  EDITOR_TAG,
-  [
+// Links are rows: a label plus where it goes. `path` wins over `url` when both
+// are set, which is why they stay two fields instead of one guessed box.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'links',
+  title: '링크',
+  addLabel: '링크 추가',
+  row: [
+    { name: 'label', label: '이름', selector: { text: {} } },
+    { name: 'url', label: '주소 (https://…)', selector: { text: {} } },
+    { name: 'path', label: '대시보드 경로 (/lovelace/0)', selector: { text: {} } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+  ],
+  blank: { label: '새 링크' },
+  schema: [
     { name: 'text', selector: { text: {} } },
     {
       name: '',
@@ -65,9 +74,9 @@ registerEditor(
             select: {
               mode: 'dropdown',
               options: [
-                { value: 'left', label: 'Left' },
-                { value: 'center', label: 'Center' },
-                { value: 'right', label: 'Right' },
+                { value: 'left', label: '왼쪽' },
+                { value: 'center', label: '가운데' },
+                { value: 'right', label: '오른쪽' },
               ],
             },
           },
@@ -77,14 +86,14 @@ registerEditor(
     },
     { name: 'watch_entity', selector: { entity: { multiple: true } } },
   ],
-  {
-    text: 'Small print',
-    align: 'Alignment',
-    show_updated: 'Show updated chip',
-    watch_entity: 'Watch entities (empty = current time)',
+  labels: {
+    text: '작은 글씨',
+    align: '정렬',
+    show_updated: '갱신 시각 표시',
+    watch_entity: '감시 엔티티 (비우면 현재 시각)',
   },
-  { align: 'center', show_updated: false }
-);
+  defaults: { align: 'center', show_updated: false },
+});
 
 /** What the 'updated' chip should say, and what it is actually reporting. */
 interface Stamp {

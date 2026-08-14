@@ -12,7 +12,7 @@ import {
   supportsFeature,
 } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-channels-card',
@@ -49,7 +49,7 @@ export interface SilkChannel {
 
 export interface SilkChannelsCardConfig extends LovelaceCardConfig {
   entity: string;
-  /** YAML-only: 1–24 presets. */
+  /** 1–24 presets, one row each in the editor. */
   channels: SilkChannel[];
   name?: string;
   /** Accent override. */
@@ -58,17 +58,28 @@ export interface SilkChannelsCardConfig extends LovelaceCardConfig {
 
 const EDITOR_TAG = 'silk-channels-card-editor';
 
-// `channels` is a list of objects, which ha-form cannot author — the editor
-// covers the scalar options and the presets stay YAML, as on silk-radio.
-registerEditor(
-  EDITOR_TAG,
-  [
+// Each preset is a row: name plus either a source-list entry or a media id,
+// with the tile's number, icon and logo alongside it.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'channels',
+  title: '채널',
+  addLabel: '채널 추가',
+  blank: { name: '새 채널', media_id: '1' },
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'number', label: '채널 번호', selector: { text: {} } },
+    { name: 'source', label: '입력 소스(source_list 항목)', selector: { text: {} } },
+    { name: 'media_id', label: '채널 ID', selector: { text: {} } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+    { name: 'image', label: '로고 주소', selector: { text: {} } },
+  ],
+  schema: [
     { name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } },
     { name: 'name', selector: { text: {} } },
     { name: 'color', selector: { ui_color: {} } },
   ],
-  { entity: '엔티티', name: '이름', color: '강조 색상' }
-);
+  labels: { entity: '엔티티', name: '이름', color: '강조 색상' },
+});
 
 const norm = (text: string): string => text.toLowerCase().replace(/\s+/g, ' ').trim();
 

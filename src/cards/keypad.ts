@@ -29,9 +29,15 @@ const MAX_CODE_LENGTH = 16;
 
 const EDITOR_TAG = 'silk-keypad-card-editor';
 
-// `action` stays YAML-only — a {service, data} object, where `data` is a
-// free-form map no ha-form selector expresses. Leaving `code_length` empty
-// keeps the pad free-length, so it carries no default here.
+/**
+ * `action` is a nested `{service, data?}` object, which is exactly the shape an
+ * expandable section writes: ha-form nests that section's fields under its own
+ * name, so the two fields land back under `action` with no flattening on the
+ * way in or out. The service data stays an object box — it is a free-form
+ * mapping of whatever fields the chosen service takes, so nothing here can
+ * enumerate it. Leaving `code_length` empty keeps the pad free-length, so it
+ * has no default.
+ */
 registerEditor(
   EDITOR_TAG,
   [
@@ -40,8 +46,23 @@ registerEditor(
       name: 'code_length',
       selector: { number: { min: 1, max: MAX_CODE_LENGTH, step: 1, mode: 'box' } },
     },
+    {
+      name: 'action',
+      type: 'expandable',
+      title: '실행할 동작',
+      schema: [
+        { name: 'service', required: true, selector: { text: {} } },
+        { name: 'data', selector: { object: {} } },
+      ],
+    },
   ],
-  { title: '제목', code_length: '자동 전송 자릿수' }
+  {
+    title: '제목',
+    code_length: '자동 전송 자릿수',
+    action: '실행할 동작',
+    service: '서비스 (domain.service)',
+    data: '서비스 데이터 (선택)',
+  }
 );
 
 /** Keypad layout: 1-9, then backspace / 0 / submit. */

@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, haptic, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-quote-card',
@@ -19,7 +19,7 @@ export interface SilkQuote {
 }
 
 export interface SilkQuoteCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the pool. Strings or {text, author} both accepted. */
+  /** The pool. Strings or {text, author} both accepted. */
   quotes?: (string | SilkQuote)[];
   /** Alternative source: an entity whose state/attributes carry the line. */
   entity?: string;
@@ -70,11 +70,15 @@ function normalizeList(raw: unknown[]): SilkQuote[] {
 
 const EDITOR_TAG = 'silk-quote-card-editor';
 
-// The quote pool stays YAML-only: ha-form has no editor for a list of
-// {text, author} pairs, and a flattened one would dwarf the card.
-registerEditor(
-  EDITOR_TAG,
-  [
+// The pool is a list of {text, author} pairs, so it gets one row each — add,
+// reorder, delete. The bare-string form (`quotes: ['a line']`) is still read by
+// the card, but it has no fields of its own to show: rewrite such a pool as
+// {text: …} entries before editing it here.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'quotes',
+  title: '문구',
+  addLabel: '문구 추가',
+  schema: [
     { name: 'entity', selector: { entity: { domain: ['sensor', 'input_text'] } } },
     { name: 'name', selector: { text: {} } },
     {
@@ -90,15 +94,20 @@ registerEditor(
     },
     { name: 'color', selector: { ui_color: {} } },
   ],
-  {
+  labels: {
     entity: '엔터티 (문구 출처, 선택)',
     name: '이름',
     interval: '문구 교체 주기 (초)',
     daily: '하루에 한 문구',
     color: '강조 색상',
   },
-  { interval: DEFAULT_INTERVAL_S, daily: false }
-);
+  defaults: { interval: DEFAULT_INTERVAL_S, daily: false },
+  row: [
+    { name: 'text', label: '문구', selector: { text: { multiline: true } } },
+    { name: 'author', label: '지은이', selector: { text: {} } },
+  ],
+  blank: { text: '' },
+});
 
 /**
  * A quote that changes on its own clock. The index is derived from wall time

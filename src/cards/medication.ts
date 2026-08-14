@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, toggleEntity, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-meds-card',
@@ -22,7 +22,7 @@ export interface SilkMedConfig {
 }
 
 export interface SilkMedsCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the doses this card tracks. */
+  /** The doses this card tracks. */
   meds: SilkMedConfig[];
   name?: string;
 }
@@ -56,13 +56,27 @@ const DEFAULT_ICON = 'mdi:pill';
 
 const EDITOR_TAG = 'silk-meds-card-editor';
 
-// Doses are a YAML list (name + time + helper per row); the editor owns the title.
-registerEditor(
-  EDITOR_TAG,
-  [{ name: 'name', selector: { text: {} } }],
-  { name: 'Name' },
-  { name: 'Medication' }
-);
+// One form per dose. `time` stays a text field on purpose: the card validates
+// 'HH:MM', which HA's time selector would answer with 'HH:MM:SS'.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'meds',
+  title: '복약',
+  addLabel: '복약 추가',
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'time', label: '시간 (HH:MM)', selector: { text: {} } },
+    {
+      name: 'entity',
+      label: '엔티티 (복용 표시)',
+      selector: { entity: { domain: ['input_boolean', 'switch'] } },
+    },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+  ],
+  blank: { name: '새 복약', time: '08:00', icon: DEFAULT_ICON },
+  schema: [{ name: 'name', selector: { text: {} } }],
+  labels: { name: '이름' },
+  defaults: { name: 'Medication' },
+});
 
 /** Today's local ms for an 'HH:MM' schedule. */
 function todayAt(time: string, now: number): number | null {

@@ -45,6 +45,7 @@ const EDITOR_LABELS: Record<string, string> = {
   devices: '기기 센서',
   unaccounted: '집 전체 센서',
   name: '이름',
+  color: '강조 색상',
 };
 
 /**
@@ -57,6 +58,7 @@ const EDITOR_SCHEMA: object[] = [
   entityListSelector('devices', ['sensor']),
   { name: 'unaccounted', selector: { entity: { domain: ['sensor'] } } },
   { name: 'name', selector: { text: {} } },
+  { name: 'color', selector: { ui_color: {} } },
 ];
 
 registerListEditor(EDITOR_TAG, {

@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-bandwidth-card',
@@ -19,7 +19,7 @@ export interface SilkTalkerConfig {
 }
 
 export interface SilkBandwidthCardConfig extends LovelaceCardConfig {
-  /** Clients to rank. YAML-only — it is a list of objects. Max 10. */
+  /** Clients to rank, one row each in the editor. Max 10. */
   clients: SilkTalkerConfig[];
   /** Total-throughput sensor; the unclaimed remainder draws as a muted bar. */
   total?: string;
@@ -53,10 +53,18 @@ const MIN_FILL_PCT = 2;
 
 const EDITOR_TAG = 'silk-bandwidth-card-editor';
 
-// `clients` stays YAML-only (a list of objects); the rest is pickable.
-registerEditor(
-  EDITOR_TAG,
-  [
+// `clients` is a list of {entity, name} objects — the row editor authors it
+// with a picker per row, so nothing about this card needs YAML.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'clients',
+  title: '클라이언트',
+  addLabel: '클라이언트 추가',
+  blank: { entity: '' },
+  row: [
+    { name: 'entity', label: '엔티티', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'name', label: '이름', selector: { text: {} } },
+  ],
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'total', selector: { entity: { domain: ['sensor'] } } },
     {
@@ -68,8 +76,8 @@ registerEditor(
       ],
     },
   ],
-  { name: '이름', total: '전체 처리량 센서', unit: '단위', color: '강조 색상' }
-);
+  labels: { name: '이름', total: '전체 처리량 센서', unit: '단위', color: '강조 색상' },
+});
 
 const PREFIX_POWER: Record<string, number> = { k: 1, m: 2, g: 3, t: 4 };
 

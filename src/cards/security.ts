@@ -10,7 +10,8 @@ import {
   stateText,
   supportsFeature,
 } from '../shared/service';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 
 export const META = {
   type: 'silk-security-card',
@@ -21,11 +22,11 @@ export const META = {
 export interface SilkSecurityCardConfig extends LovelaceCardConfig {
   /** alarm_control_panel entity — enables the verdict's top severity and the arm chips. */
   alarm?: string;
-  /** lock.* ids (YAML-only). */
+  /** lock.* ids. */
   locks?: string[];
-  /** cover.* / binary_sensor.* door-window ids (YAML-only). */
+  /** cover.* / binary_sensor.* door-window ids. */
   openings?: string[];
-  /** binary_sensor.* motion/occupancy ids (YAML-only). */
+  /** binary_sensor.* motion/occupancy ids. */
   motion?: string[];
   name?: string;
 }
@@ -98,17 +99,30 @@ const OPTIMISTIC_TIMEOUT_MS = 2000;
 
 const EDITOR_TAG = 'silk-security-card-editor';
 
-// Only the panel and the title are picker-worthy; the three entity lists stay
-// YAML-only — they are inventories, not single choices.
-registerEditor(
-  EDITOR_TAG,
-  [
+// The three categories are inventories of entity ids — plain lists, so each one
+// is a multi-entity picker. The card only ever reads ids, and the shared list
+// editor folds the picker's answer back into the stored list, so a hand-written
+// order survives adding or removing a single entity.
+registerListEditor(EDITOR_TAG, {
+  schema: [
     { name: 'alarm', selector: { entity: { domain: ['alarm_control_panel'] } } },
     { name: 'name', selector: { text: {} } },
+    entityListSelector('locks', ['lock']),
+    // Doors and windows arrive as either binary_sensors or covers; a
+    // device_class filter here would hide every garage door cover.
+    entityListSelector('openings', ['binary_sensor', 'cover']),
+    entityListSelector('motion', ['binary_sensor'], ['motion', 'occupancy']),
   ],
-  { alarm: 'Alarm panel', name: 'Name' },
-  { name: 'Security' }
-);
+  labels: {
+    alarm: '경보 패널',
+    name: '이름',
+    locks: '잠금 장치',
+    openings: '문·창문',
+    motion: '움직임 센서',
+  },
+  defaults: { name: 'Security' },
+  listFields: ['locks', 'openings', 'motion'],
+});
 
 function validateList(value: unknown, key: string): string[] {
   if (value === undefined) return [];

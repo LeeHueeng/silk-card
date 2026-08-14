@@ -12,7 +12,7 @@ import {
   clamp,
 } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-irrigation-card',
@@ -29,7 +29,7 @@ export interface IrrigationZone {
 }
 
 export interface SilkIrrigationCardConfig extends LovelaceCardConfig {
-  /** The zones. YAML-only: a list of {entity, name?, duration?}. */
+  /** The zones: a list of {entity, name?, duration?}. */
   zones: IrrigationZone[];
   /** Header label, defaults to "Irrigation". */
   name?: string;
@@ -46,10 +46,28 @@ const TICK_MS = 1000;
 
 const EDITOR_TAG = 'silk-irrigation-card-editor';
 
-// Zones stay YAML-only — per-zone entity + duration pairs would dwarf the card.
-registerEditor(
-  EDITOR_TAG,
-  [
+// One form per zone: the entity, what to call it, and how long a run lasts.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'zones',
+  title: '구역',
+  addLabel: '구역 추가',
+  row: [
+    {
+      name: 'entity',
+      label: '엔티티',
+      selector: {
+        entity: { domain: ['valve', 'switch', 'cover', 'script', 'input_boolean'] },
+      },
+    },
+    { name: 'name', label: '이름', selector: { text: {} } },
+    {
+      name: 'duration',
+      label: '시간(분)',
+      selector: { number: { min: 1, max: 480, step: 1, mode: 'box' } },
+    },
+  ],
+  blank: { entity: '', duration: 10 },
+  schema: [
     { name: 'name', selector: { text: {} } },
     {
       name: '',
@@ -60,9 +78,9 @@ registerEditor(
       ],
     },
   ],
-  { name: '이름', icon: '아이콘', color: '강조 색상' },
-  { icon: DEFAULT_ICON, name: DEFAULT_NAME }
-);
+  labels: { name: '이름', icon: '아이콘', color: '강조 색상' },
+  defaults: { icon: DEFAULT_ICON, name: DEFAULT_NAME },
+});
 
 /** Countdown display: m:ss under an hour, h:mm:ss beyond. Ceils so 0:00 means done. */
 function formatSeconds(total: number): string {

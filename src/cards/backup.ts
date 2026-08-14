@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, toggleEntity, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -29,7 +29,7 @@ export interface BackupJobConfig {
 }
 
 export interface SilkBackupCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the jobs this card watches. */
+  /** The jobs this card watches. */
   jobs: BackupJobConfig[];
   /** Hours since the last success after which a job reads stale. Default 36. */
   stale_hours?: number;
@@ -72,11 +72,14 @@ const OK_STATES = new Set([
 
 const EDITOR_TAG = 'silk-backup-card-editor';
 
-// Jobs stay YAML-only — five nested entity pickers per row would dwarf the
-// card; every scalar the card reads is on the form.
-registerEditor(
-  EDITOR_TAG,
-  [
+// A job is a name plus up to five entities from whichever integration reports
+// it — a shape no flat form can hold, so the scalars render first and each job
+// gets its own form below them.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'jobs',
+  title: '백업 작업',
+  addLabel: '작업 추가',
+  schema: [
     { name: 'name', selector: { text: {} } },
     {
       name: '',
@@ -87,9 +90,26 @@ registerEditor(
       ],
     },
   ],
-  { name: '이름', stale_hours: '오래됨 기준(시간)', color: '강조 색상' },
-  { name: 'Backups', stale_hours: DEFAULT_STALE_HOURS }
-);
+  labels: { name: '이름', stale_hours: '오래됨 기준(시간)', color: '강조 색상' },
+  defaults: { name: 'Backups', stale_hours: DEFAULT_STALE_HOURS },
+  row: [
+    { name: 'name', label: '작업 이름', selector: { text: {} } },
+    {
+      name: 'state',
+      label: '상태 엔티티',
+      selector: { entity: { domain: ['sensor', 'binary_sensor'] } },
+    },
+    { name: 'last', label: '마지막 성공 시각', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'size', label: '크기 센서', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'duration', label: '소요 시간 센서', selector: { entity: { domain: ['sensor'] } } },
+    {
+      name: 'run',
+      label: '실행 버튼',
+      selector: { entity: { domain: ['script', 'button', 'input_button', 'automation'] } },
+    },
+  ],
+  blank: { name: '새 백업' },
+});
 
 /** '45m' · '6h' · '2d' — the compact age used in rows and in the header. */
 function ageLabel(ms: number): string {

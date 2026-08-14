@@ -3,7 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { haptic } from '../shared/service';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-popup-card',
@@ -16,7 +16,7 @@ export interface SilkPopupCardConfig extends LovelaceCardConfig {
   hash: string;
   title?: string;
   icon?: string;
-  /** YAML-only: the pop-up body — any list of Lovelace card configs. */
+  /** The pop-up body — any list of Lovelace card configs. */
   cards?: LovelaceCardConfig[];
 }
 
@@ -35,19 +35,30 @@ const EXIT_MS = 200;
 
 const EDITOR_TAG = 'silk-popup-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// The body is a list of whole card configs, so every row is one card: add,
+// reorder and delete it here, and set the two keys almost every card shares.
+// Keys this schema does not mention survive the round trip, so the rest of a
+// hand-written card config stays exactly as authored.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'cards',
+  title: '팝업에 담을 카드',
+  addLabel: '카드 추가',
+  schema: [
     { name: 'hash', required: true, selector: { text: {} } },
     { name: 'title', selector: { text: {} } },
     { name: 'icon', selector: { icon: {} } },
   ],
-  {
-    hash: 'Hash (e.g. #garage)',
-    title: 'Title',
-    icon: 'Icon',
-  }
-);
+  labels: {
+    hash: '해시 (예: #garage)',
+    title: '제목',
+    icon: '아이콘',
+  },
+  row: [
+    { name: 'type', label: '카드 종류 (예: markdown)', selector: { text: {} } },
+    { name: 'entity', label: '엔티티 (카드가 받을 때)', selector: { entity: {} } },
+  ],
+  blank: { type: 'markdown', content: '새 카드' },
+});
 
 @customElement('silk-popup-card')
 export class SilkPopupCard extends LitElement {

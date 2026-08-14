@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-tariff-card',
@@ -23,9 +23,9 @@ export interface SilkTariffCardConfig extends LovelaceCardConfig {
   name?: string;
   /** Price unit; defaults to the entity's own unit_of_measurement. */
   unit?: string;
-  /** YAML-only absolute price bands; replaces the relative default banding. */
+  /** Absolute price bands; replaces the relative default banding. */
   levels?: TariffLevel[];
-  /** Accent override (YAML only). */
+  /** Accent override. */
   color?: string;
 }
 
@@ -155,9 +155,22 @@ function barPath(x: number, w: number, top: number, bottom: number, up: boolean)
 
 const EDITOR_TAG = 'silk-tariff-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// Price bands are a list of {above, color} rows — the one part of this card a
+// flat form cannot express, so it gets the repeater instead of YAML.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'levels',
+  title: '가격 구간 (비우면 오늘 범위의 1/3씩)',
+  addLabel: '구간 추가',
+  blank: { above: 0, color: 'green' },
+  row: [
+    {
+      name: 'above',
+      label: '이 가격 이상',
+      selector: { number: { mode: 'box', step: 'any' } },
+    },
+    { name: 'color', label: '색상', selector: { ui_color: {} } },
+  ],
+  schema: [
     { name: 'entity', required: true, selector: { entity: { domain: ['sensor'] } } },
     { name: 'name', selector: { text: {} } },
     {
@@ -169,8 +182,8 @@ registerEditor(
       ],
     },
   ],
-  { entity: '엔티티', name: '이름', unit: '단위', color: '강조 색상' }
-);
+  labels: { entity: '엔티티', name: '이름', unit: '단위', color: '강조 색상' },
+});
 
 @customElement('silk-tariff-card')
 export class SilkTariffCard extends LitElement {

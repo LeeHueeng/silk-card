@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-fuel-card',
@@ -25,7 +25,8 @@ export interface FuelStationConfig {
 }
 
 export interface SilkFuelCardConfig extends LovelaceCardConfig {
-  /** Stations, given as `{entity, …}` objects or bare price entity ids. */
+  /** Stations — one row each in the editor. A bare price entity id is still
+   *  accepted from YAML; the editor writes the `{entity, …}` form. */
   stations: (string | FuelStationConfig)[];
   /** Header label, defaults to "Fuel". */
   name?: string;
@@ -33,7 +34,7 @@ export interface SilkFuelCardConfig extends LovelaceCardConfig {
   currency?: string;
   /** Volume unit appended to the currency (`L` → `€/L`). */
   unit?: string;
-  /** Accent override (YAML only). */
+  /** Accent override. */
   color?: string;
 }
 
@@ -70,12 +71,21 @@ const ENTITY_ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 
 const EDITOR_TAG = 'silk-fuel-card-editor';
 
-// `stations` stays YAML-only: it is a list of objects (entity + labels) that no
-// ha-form selector expresses. ha-form passes untouched keys straight through,
-// so editing the header here never disturbs the station list.
-registerEditor(
-  EDITOR_TAG,
-  [
+// Stations are rows: the price sensor plus the labels that make it
+// recognisable. `distance` is a text box because the card takes either a
+// sensor id or literal text like `1.2 km`.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'stations',
+  title: '주유소',
+  addLabel: '주유소 추가',
+  row: [
+    { name: 'entity', label: '가격 엔티티', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'brand', label: '브랜드', selector: { text: {} } },
+    { name: 'distance', label: '거리 (엔티티 또는 1.2 km)', selector: { text: {} } },
+  ],
+  blank: { entity: '' },
+  schema: [
     { name: 'name', selector: { text: {} } },
     {
       name: '',
@@ -87,13 +97,13 @@ registerEditor(
       ],
     },
   ],
-  {
+  labels: {
     name: '이름',
     currency: '통화 기호 (예: €)',
     unit: '용량 단위 (예: L)',
     color: '강조 색상',
-  }
-);
+  },
+});
 
 /** First letter that can carry a badge; falls back to a bullet. */
 function initialOf(label: string): string {
@@ -127,7 +137,12 @@ export class SilkFuelCard extends LitElement {
         /fuel|petrol|gasoline|diesel|e5|e10|benzin/i.test(id) &&
         Number.isFinite(Number(hass.states[id].state))
     );
-    return { type: 'custom:silk-fuel-card', stations: ids.slice(0, 4) };
+    // Object form, matching what the row editor writes — a station picked in
+    // the UI is then a row with room for its name, brand and distance.
+    return {
+      type: 'custom:silk-fuel-card',
+      stations: ids.slice(0, 4).map((entity) => ({ entity })),
+    };
   }
 
   public static async getConfigElement(): Promise<HTMLElement> {

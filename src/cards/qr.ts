@@ -331,7 +331,7 @@ export interface SilkQrCardConfig extends LovelaceCardConfig {
   text?: string;
   /** Encode this entity's state instead. */
   entity?: string;
-  /** Encode a Wi-Fi join string. YAML-only. */
+  /** Encode a Wi-Fi join string. */
   wifi?: SilkQrWifi;
   name?: string;
   color?: string;
@@ -354,8 +354,9 @@ function wifiPayload(wifi: SilkQrWifi): string {
 
 const EDITOR_TAG = 'silk-qr-card-editor';
 
-// `wifi` stays YAML-only: it is a nested {ssid, password, encryption, hidden}
-// object, which needs a sub-form rather than a flat schema row.
+// `wifi` is a nested {ssid, password, encryption, hidden} object; ha-form's
+// expandable section nests its fields under its own name, which writes exactly
+// that shape. The password never leaves the config, so it uses a masked field.
 registerEditor(
   EDITOR_TAG,
   [
@@ -363,12 +364,40 @@ registerEditor(
     { name: 'text', selector: { text: {} } },
     { name: 'entity', selector: { entity: {} } },
     { name: 'color', selector: { ui_color: {} } },
+    {
+      name: 'wifi',
+      type: 'expandable',
+      title: 'Wi-Fi 접속 정보',
+      schema: [
+        { name: 'ssid', selector: { text: {} } },
+        { name: 'password', selector: { text: { type: 'password' } } },
+        {
+          name: 'encryption',
+          selector: {
+            select: {
+              mode: 'dropdown',
+              options: [
+                { value: 'WPA', label: 'WPA / WPA2' },
+                { value: 'WEP', label: 'WEP' },
+                { value: 'nopass', label: '암호 없음' },
+              ],
+            },
+          },
+        },
+        { name: 'hidden', selector: { boolean: {} } },
+      ],
+    },
   ],
   {
     name: '설명',
     text: '인코딩할 텍스트',
     entity: '엔터티 (상태를 인코딩)',
     color: '강조 색상',
+    wifi: 'Wi-Fi 접속 정보',
+    ssid: '네트워크 이름 (SSID)',
+    password: '비밀번호',
+    encryption: '보안 방식',
+    hidden: '숨겨진 네트워크',
   }
 );
 

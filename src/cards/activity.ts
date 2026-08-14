@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, haptic, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-activity-card',
@@ -31,7 +31,7 @@ export interface SilkActivity {
 }
 
 export interface SilkActivityCardConfig extends LovelaceCardConfig {
-  /** YAML-only: 1–12 activities. */
+  /** 1–12 activities. */
   activities: SilkActivity[];
   name?: string;
 }
@@ -47,10 +47,26 @@ const NOTE_TTL_MS = 5000;
 
 const EDITOR_TAG = 'silk-activity-card-editor';
 
-// `activities` is a list of nested objects (name + icon + a service-call list),
-// which ha-form cannot author — a row editor is the only way to reach it, so
-// the macros stay YAML and the editor covers the scalar options.
-registerEditor(EDITOR_TAG, [{ name: 'name', selector: { text: {} } }], { name: '이름' });
+/**
+ * One form per activity: name, icon and the optional state entity are ordinary
+ * fields, and `steps` — a sequence of service calls with their own data
+ * mappings — is the one thing no selector can enumerate, so it keeps a YAML box
+ * inside its row. Everything that can be picked, is picked.
+ */
+registerRowsEditor(EDITOR_TAG, {
+  field: 'activities',
+  title: '활동',
+  addLabel: '활동 추가',
+  schema: [{ name: 'name', selector: { text: {} } }],
+  labels: { name: '이름' },
+  row: [
+    { name: 'name', label: '활동 이름', selector: { text: {} } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+    { name: 'state_entity', label: '상태 엔티티', selector: { entity: {} } },
+    { name: 'steps', label: '단계 (service / data / delay)', selector: { object: {} } },
+  ],
+  blank: { name: '새 활동', icon: 'mdi:play-circle', steps: [{ service: 'scene.turn_on' }] },
+});
 
 /**
  * Activity macros: each tile runs its steps in order, awaiting every service

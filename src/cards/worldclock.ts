@@ -2,7 +2,7 @@ import { LitElement, html, css, nothing, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-world-clock-card',
@@ -19,7 +19,7 @@ export interface WorldClockZoneConfig {
 }
 
 export interface SilkWorldClockCardConfig extends LovelaceCardConfig {
-  /** 1-6 zones. YAML-only. */
+  /** 1-6 zones. */
   zones: WorldClockZoneConfig[];
   show_date?: boolean;
   /** Omit to follow the Home Assistant time format / locale. */
@@ -62,16 +62,68 @@ const BADGE_MAX = 3;
 
 const EDITOR_TAG = 'silk-world-clock-card-editor';
 
-// `zones` stays YAML-only — ha-form has no repeatable label/tz row.
-registerEditor(
-  EDITOR_TAG,
-  [
+/**
+ * The cities offered in the dropdown. Any IANA name is still accepted — the
+ * picker takes a custom value — but the list covers the zones people actually
+ * put on a wall clock, so the common case is one click.
+ */
+const TZ_OPTIONS: { value: string; label: string }[] = [
+  { value: 'Asia/Seoul', label: '서울 (Asia/Seoul)' },
+  { value: 'Asia/Tokyo', label: '도쿄 (Asia/Tokyo)' },
+  { value: 'Asia/Shanghai', label: '상하이 (Asia/Shanghai)' },
+  { value: 'Asia/Hong_Kong', label: '홍콩 (Asia/Hong_Kong)' },
+  { value: 'Asia/Singapore', label: '싱가포르 (Asia/Singapore)' },
+  { value: 'Asia/Bangkok', label: '방콕 (Asia/Bangkok)' },
+  { value: 'Asia/Jakarta', label: '자카르타 (Asia/Jakarta)' },
+  { value: 'Asia/Kolkata', label: '콜카타 (Asia/Kolkata)' },
+  { value: 'Asia/Dubai', label: '두바이 (Asia/Dubai)' },
+  { value: 'Australia/Sydney', label: '시드니 (Australia/Sydney)' },
+  { value: 'Pacific/Auckland', label: '오클랜드 (Pacific/Auckland)' },
+  { value: 'Europe/London', label: '런던 (Europe/London)' },
+  { value: 'Europe/Paris', label: '파리 (Europe/Paris)' },
+  { value: 'Europe/Berlin', label: '베를린 (Europe/Berlin)' },
+  { value: 'Europe/Madrid', label: '마드리드 (Europe/Madrid)' },
+  { value: 'Europe/Rome', label: '로마 (Europe/Rome)' },
+  { value: 'Europe/Amsterdam', label: '암스테르담 (Europe/Amsterdam)' },
+  { value: 'Europe/Stockholm', label: '스톡홀름 (Europe/Stockholm)' },
+  { value: 'Europe/Moscow', label: '모스크바 (Europe/Moscow)' },
+  { value: 'Europe/Istanbul', label: '이스탄불 (Europe/Istanbul)' },
+  { value: 'America/New_York', label: '뉴욕 (America/New_York)' },
+  { value: 'America/Toronto', label: '토론토 (America/Toronto)' },
+  { value: 'America/Chicago', label: '시카고 (America/Chicago)' },
+  { value: 'America/Denver', label: '덴버 (America/Denver)' },
+  { value: 'America/Los_Angeles', label: '로스앤젤레스 (America/Los_Angeles)' },
+  { value: 'America/Vancouver', label: '밴쿠버 (America/Vancouver)' },
+  { value: 'America/Mexico_City', label: '멕시코시티 (America/Mexico_City)' },
+  { value: 'America/Sao_Paulo', label: '상파울루 (America/Sao_Paulo)' },
+  { value: 'Africa/Cairo', label: '카이로 (Africa/Cairo)' },
+  { value: 'Africa/Johannesburg', label: '요하네스버그 (Africa/Johannesburg)' },
+  { value: 'UTC', label: 'UTC' },
+];
+
+// One row per clock: a label, a zone picked from the list (or typed), and the
+// short text badge. The zone list is the whole card, so it must be clickable.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'zones',
+  title: `시간대 (최대 ${MAX_ZONES}개)`,
+  addLabel: '시간대 추가',
+  blank: { label: '새 도시', tz: 'UTC' },
+  row: [
+    { name: 'label', label: '도시 이름', selector: { text: {} } },
+    {
+      name: 'tz',
+      label: '시간대(IANA)',
+      selector: { select: { mode: 'dropdown', custom_value: true, options: TZ_OPTIONS } },
+    },
+    { name: 'flag', label: `배지(최대 ${BADGE_MAX}자)`, selector: { text: {} } },
+  ],
+  schema: [
     { name: 'show_date', selector: { boolean: {} } },
     { name: 'hour12', selector: { boolean: {} } },
   ],
-  { show_date: 'Show each local date', hour12: '12-hour time' },
-  { show_date: false }
-);
+  labels: { show_date: '현지 날짜 표시', hour12: '12시간 표기' },
+  defaults: { show_date: false },
+});
 
 @customElement('silk-world-clock-card')
 export class SilkWorldClockCard extends LitElement {

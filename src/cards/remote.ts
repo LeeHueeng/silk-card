@@ -60,23 +60,62 @@ export interface SilkRemoteCardConfig extends LovelaceCardConfig {
   entity: string;
   name?: string;
   /**
-   * YAML-only. media_player has no directional commands, so the d-pad is
-   * honest: each key is a generic service call — wire your remote entity here
-   * (e.g. `remote.send_command`, `webostv.button`). When `dpad` is omitted the
-   * pad renders disabled at 40% opacity instead of pretending to work.
+   * media_player has no directional commands, so the d-pad is honest: each key
+   * is a generic service call — wire your remote entity here (e.g.
+   * `remote.send_command`, `webostv.button`). When `dpad` is omitted the pad
+   * renders disabled at 40% opacity instead of pretending to work.
    */
   dpad?: DpadConfig;
 }
 
 const EDITOR_TAG = 'silk-remote-card-editor';
 
+/**
+ * One d-pad slot. ha-form nests an expandable section's fields under its own
+ * name, so `dpad` → `up` → `{service, data}` comes out of the form in exactly
+ * the shape the card reads. `data` is the free-form service payload, so it is
+ * the one field that stays a code box.
+ */
+const padKey = (name: DpadKey, title: string) => ({
+  name,
+  type: 'expandable',
+  title,
+  schema: [
+    { name: 'service', selector: { text: {} } },
+    { name: 'data', selector: { object: {} } },
+  ],
+});
+
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } },
     { name: 'name', selector: { text: {} } },
+    {
+      name: 'dpad',
+      type: 'expandable',
+      title: '방향 패드',
+      schema: [
+        padKey('up', '위'),
+        padKey('down', '아래'),
+        padKey('left', '왼쪽'),
+        padKey('right', '오른쪽'),
+        padKey('ok', '확인 (OK)'),
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name' }
+  {
+    entity: '미디어 플레이어',
+    name: '이름',
+    dpad: '방향 패드',
+    up: '위',
+    down: '아래',
+    left: '왼쪽',
+    right: '오른쪽',
+    ok: '확인 (OK)',
+    service: '서비스 (domain.service)',
+    data: '서비스 데이터 (선택)',
+  }
 );
 
 /**

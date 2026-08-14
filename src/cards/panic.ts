@@ -3,7 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { haptic } from '../shared/service';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-panic-card',
@@ -57,20 +57,48 @@ const RING_UNITS = 100;
 
 const EDITOR_TAG = 'silk-panic-card-editor';
 
-// Actions stay YAML-only: each is a service call with free-form data, which no
-// generic ha-form schema models honestly.
-registerEditor(
-  EDITOR_TAG,
-  [
+// One form per tile. `service` is the `domain.service` pair the hold fires;
+// `data` is the free-form payload, so it keeps an object field of its own.
+// At most MAX_ACTIONS tiles fit — a fifth row is refused by setConfig.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'actions',
+  title: `동작 (최대 ${MAX_ACTIONS}개)`,
+  addLabel: '동작 추가',
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+    { name: 'service', label: '서비스 (domain.service)', selector: { text: {} } },
+    {
+      name: 'color',
+      label: '심각도',
+      selector: {
+        select: {
+          mode: 'dropdown',
+          options: [
+            { value: 'error', label: '긴급 (빨강)' },
+            { value: 'warning', label: '경고 (주황)' },
+          ],
+        },
+      },
+    },
+    { name: 'data', label: '서비스 데이터 (선택)', selector: { object: {} } },
+  ],
+  blank: {
+    name: '새 동작',
+    icon: DEFAULT_ICON,
+    service: 'persistent_notification.create',
+    color: 'error',
+  },
+  schema: [
     { name: 'name', selector: { text: {} } },
     {
       name: 'hold_time',
       selector: { number: { min: MIN_HOLD_MS, max: MAX_HOLD_MS, step: 100, mode: 'box' } },
     },
   ],
-  { name: 'Name', hold_time: 'Hold time (ms)' },
-  { hold_time: DEFAULT_HOLD_MS }
-);
+  labels: { name: '이름', hold_time: '길게 누르는 시간(ms)' },
+  defaults: { hold_time: DEFAULT_HOLD_MS },
+});
 
 /**
  * Four tiles, at most, that each need a deliberate hold. Nothing here opens a

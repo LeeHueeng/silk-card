@@ -16,7 +16,7 @@ export interface SilkSleepTimerCardConfig extends LovelaceCardConfig {
   /** The media_player the timer switches off. */
   entity: string;
   /** Preset chips, in minutes. Default 15/30/45/60/90. */
-  presets?: number[];
+  presets?: (number | string)[];
   /** Service fired on expiry, `'domain.service'`. Default media_player.turn_off. */
   action?: string;
   name?: string;
@@ -41,19 +41,33 @@ const STORAGE_PREFIX = 'silk-sleep-timer:';
 
 const EDITOR_TAG = 'silk-sleep-timer-card-editor';
 
-// `presets` stays YAML-only — a list of bare minute numbers has no ha-form
-// selector that answers with numbers.
+/** Minute chips offered in the editor; any other value can still be typed. */
+const PRESET_OPTIONS = [5, 10, 15, 20, 30, 45, 60, 90, 120].map((m) => ({
+  value: String(m),
+  label: `${m}분`,
+}));
+
+// `presets` is a list of bare minutes, which no repeater has to hold: the
+// multi-select answers with a list, custom values cover anything not offered,
+// and `_presets()` already coerces every entry with Number().
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } },
     { name: 'name', selector: { text: {} } },
+    {
+      name: 'presets',
+      selector: {
+        select: { options: PRESET_OPTIONS, multiple: true, custom_value: true, mode: 'dropdown' },
+      },
+    },
     { name: 'action', selector: { text: {} } },
     { name: 'color', selector: { ui_color: {} } },
   ],
   {
     entity: '미디어 플레이어',
     name: '이름',
+    presets: `프리셋 (분, 최대 ${MAX_PRESETS}개)`,
     action: '종료 시 서비스 (domain.service)',
     color: '강조 색상',
   },

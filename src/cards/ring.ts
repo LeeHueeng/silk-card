@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -27,15 +27,19 @@ export interface SilkRingCardConfig extends LovelaceCardConfig {
   unit?: string;
   /** Center content: the number (default) or the entity icon. */
   display?: 'value' | 'icon';
-  /** YAML-only threshold colors, same shape as silk-gauge. */
+  /** Threshold colors, same shape as silk-gauge. */
   segments?: RingSegment[];
 }
 
 const EDITOR_TAG = 'silk-ring-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// Each segment is a threshold: from this value up, the arc takes this color.
+// The card sorts them itself, so the order here is only for reading.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'segments',
+  title: '색상 구간',
+  addLabel: '구간 추가',
+  schema: [
     {
       name: 'entity',
       required: true,
@@ -64,7 +68,7 @@ registerEditor(
       ],
     },
   ],
-  {
+  labels: {
     entity: '엔티티',
     name: '이름',
     min: '최솟값',
@@ -72,8 +76,13 @@ registerEditor(
     unit: '단위',
     display: '가운데 표시',
   },
-  { min: 0, max: 100, display: 'value' }
-);
+  defaults: { min: 0, max: 100, display: 'value' },
+  row: [
+    { name: 'from', label: '시작 값', selector: { number: { mode: 'box', step: 'any' } } },
+    { name: 'color', label: '색상', selector: { ui_color: {} } },
+  ],
+  blank: { from: 0, color: 'red' },
+});
 
 /**
  * Donut geometry. The circle stroke natively starts at 3 o'clock and sweeps

@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-gauge-card',
@@ -26,7 +26,7 @@ export interface SilkGaugeCardConfig extends LovelaceCardConfig {
   unit?: string;
   /** Accent override; segments (when matched) take precedence. */
   color?: string;
-  /** YAML-only threshold colors. */
+  /** Threshold colors — one row each in the editor. */
   segments?: GaugeSegment[];
 }
 
@@ -55,6 +55,8 @@ const ARC_PATH = `M ${ARC_X0.toFixed(2)} ${ARC_Y0.toFixed(2)} A ${RADIUS} ${RADI
 /** `pathLength` normalizes the arc to 100, so dashoffset = 100 − percent. */
 const ARC_UNITS = 100;
 
+const EDITOR_TAG = 'silk-gauge-card-editor';
+
 @customElement('silk-gauge-card')
 export class SilkGaugeCard extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
@@ -75,7 +77,7 @@ export class SilkGaugeCard extends LitElement {
   }
 
   public static async getConfigElement(): Promise<HTMLElement> {
-    return document.createElement('silk-gauge-card-editor');
+    return document.createElement(EDITOR_TAG);
   }
 
   public setConfig(config: SilkGaugeCardConfig): void {
@@ -291,9 +293,18 @@ export class SilkGaugeCard extends LitElement {
   ];
 }
 
-registerEditor(
-  'silk-gauge-card-editor',
-  [
+// Thresholds are rows: a value and the color the arc takes from there up.
+// setConfig sorts them, so rows can be added in any order.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'segments',
+  title: '구간 색상',
+  addLabel: '구간 추가',
+  row: [
+    { name: 'from', label: '값 이상', selector: { number: { mode: 'box', step: 'any' } } },
+    { name: 'color', label: '색상', selector: { ui_color: {} } },
+  ],
+  blank: { from: 0, color: 'green' },
+  schema: [
     {
       name: 'entity',
       required: true,
@@ -311,7 +322,7 @@ registerEditor(
       ],
     },
   ],
-  {
+  labels: {
     entity: '엔티티',
     name: '이름',
     min: '최솟값',
@@ -319,8 +330,8 @@ registerEditor(
     unit: '단위',
     color: '강조 색상',
   },
-  { min: 0, max: 100 }
-);
+  defaults: { min: 0, max: 100 },
+});
 
 declare global {
   interface HTMLElementTagNameMap {

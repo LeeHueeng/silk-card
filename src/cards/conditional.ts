@@ -24,7 +24,6 @@ export interface SilkCondition {
   below?: number;
 }
 
-/** YAML-only card: a nested `card:` config is YAML territory. */
 export interface SilkConditionalCardConfig extends LovelaceCardConfig {
   /** Every condition must pass for the card to appear. */
   conditions: SilkCondition[];
@@ -51,6 +50,348 @@ const ENTER_MS = 200;
 function asList(value: string | string[]): string[] {
   return Array.isArray(value) ? value : [value];
 }
+
+const EDITOR_TAG = 'silk-conditional-card-editor';
+
+/** The card's own options, above the conditions. */
+const SCALAR_SCHEMA = [
+  { name: 'name', selector: { text: {} } },
+  { name: 'preview', selector: { boolean: {} } },
+];
+const SCALAR_LABELS: Record<string, string> = {
+  name: '이름',
+  preview: '편집 중 항상 표시',
+};
+
+/** One condition row. `state`/`state_not` accept several values each. */
+const CONDITION_FIELDS: { name: string; label: string; selector: Record<string, unknown> }[] = [
+  { name: 'entity', label: '엔티티', selector: { entity: {} } },
+  { name: 'state', label: '상태가 같을 때', selector: { text: { multiple: true } } },
+  { name: 'state_not', label: '상태가 아닐 때', selector: { text: { multiple: true } } },
+  { name: 'above', label: '초과', selector: { number: { mode: 'box', step: 'any' } } },
+  { name: 'below', label: '미만', selector: { number: { mode: 'box', step: 'any' } } },
+];
+const CONDITION_SCHEMA = CONDITION_FIELDS.map((f) => ({ name: f.name, selector: f.selector }));
+const CONDITION_LABELS = Object.fromEntries(CONDITION_FIELDS.map((f) => [f.name, f.label]));
+
+/**
+ * The child card. Its `type` is a plain text field so the card can be swapped
+ * by typing, and everything else lands in an object box — a child card holds
+ * *another* card's whole configuration, which no fixed schema can describe and
+ * which a custom card cannot hand to HA's own card picker.
+ */
+const CARD_SCHEMA = [
+  { name: 'type', selector: { text: {} } },
+  { name: 'card_config', selector: { object: {} } },
+];
+const CARD_LABELS: Record<string, string> = { type: '카드 종류', card_config: '카드 설정' };
+
+/** `'on'` and `['on','home']` both reach the multi-text field as a list. */
+function toTextList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item));
+  if (typeof value === 'string' || typeof value === 'number') return [String(value)];
+  return [];
+}
+
+/** …and come back as the tidiest shape the card already understands. */
+function fromTextList(value: unknown): string | string[] | undefined {
+  const list = toTextList(value).filter((item) => item !== '');
+  if (list.length === 0) return undefined;
+  return list.length === 1 ? list[0] : list;
+}
+
+/** A finite number, or undefined — an emptied box must delete the key. */
+function optionalNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : undefined;
+}
+
+/**
+ * Editor: card options, then a repeater of conditions, then the child card.
+ * `ha-form` has no repeater and no card picker, so both are built here in the
+ * shape `shared/rows.ts` uses — ▲▼ reorder, ✕ delete, add button — with keys
+ * the schema never mentions carried through untouched.
+ */
+function registerConditionalEditor(tag: string): void {
+  if (customElements.get(tag)) return;
+
+  class ConditionalEditor extends LitElement {
+    @property({ attribute: false }) public hass?: HomeAssistant;
+    @state() private _config?: LovelaceCardConfig;
+
+    public setConfig(config: LovelaceCardConfig): void {
+      this._config = config;
+    }
+
+    private get _conditions(): Record<string, unknown>[] {
+      const value = (this._config as Record<string, unknown> | undefined)?.conditions;
+      return Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+    }
+
+    private _emit(next: Record<string, unknown>): void {
+      this.dispatchEvent(
+        new CustomEvent('config-changed', {
+          detail: { config: next },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+
+    private _setConditions(rows: Record<string, unknown>[]): void {
+      const next = { ...(this._config as Record<string, unknown>) };
+      if (rows.length) next.conditions = rows;
+      else delete next.conditions;
+      this._emit(next);
+    }
+
+    private _scalarsChanged(ev: CustomEvent): void {
+      ev.stopPropagation();
+      const value = (ev.detail?.value ?? {}) as Record<string, unknown>;
+      const next = { ...(this._config as Record<string, unknown>) };
+      for (const [key, raw] of Object.entries(value)) {
+        if (key === 'conditions' || key === 'card') continue; // edited below
+        if (raw === undefined || raw === '') delete next[key];
+        else next[key] = raw;
+      }
+      this._emit(next);
+    }
+
+    /** Stored condition → form data (list-shaped state fields). */
+    private _conditionData(row: Record<string, unknown>): Record<string, unknown> {
+      return { ...row, state: toTextList(row.state), state_not: toTextList(row.state_not) };
+    }
+
+    private _conditionChanged(ev: CustomEvent, index: number): void {
+      ev.stopPropagation();
+      const value = (ev.detail?.value ?? {}) as Record<string, unknown>;
+      const rows = this._conditions.map((r) => ({ ...r }));
+      // Unknown keys stay: only the five fields this editor knows are touched.
+      const row = { ...rows[index] };
+      for (const field of CONDITION_FIELDS) {
+        const raw = value[field.name];
+        let normalized: unknown;
+        if (field.name === 'state' || field.name === 'state_not') normalized = fromTextList(raw);
+        else if (field.name === 'above' || field.name === 'below') normalized = optionalNumber(raw);
+        else normalized = raw === '' ? undefined : raw;
+        if (normalized === undefined) delete row[field.name];
+        else row[field.name] = normalized;
+      }
+      rows[index] = row;
+      this._setConditions(rows);
+    }
+
+    /**
+     * A new row starts on a real entity when one is to hand: an empty `entity`
+     * fails the card's own validation, so a blank row would put the preview in
+     * an error state before the user has typed anything.
+     */
+    private _blankCondition(): Record<string, unknown> {
+      const ids = Object.keys(this.hass?.states ?? {});
+      const entity =
+        ids.find((id) => id.startsWith('light.')) ??
+        ids.find((id) => id.startsWith('switch.')) ??
+        ids.find((id) => id.startsWith('binary_sensor.')) ??
+        ids[0] ??
+        '';
+      return { entity, state: 'on' };
+    }
+
+    private _addCondition(): void {
+      this._setConditions([...this._conditions.map((r) => ({ ...r })), this._blankCondition()]);
+    }
+
+    private _removeCondition(index: number): void {
+      this._setConditions(this._conditions.filter((_, i) => i !== index));
+    }
+
+    private _moveCondition(index: number, delta: number): void {
+      const rows = this._conditions.map((r) => ({ ...r }));
+      const target = index + delta;
+      if (target < 0 || target >= rows.length) return;
+      [rows[index], rows[target]] = [rows[target], rows[index]];
+      this._setConditions(rows);
+    }
+
+    /** Child card → {type, everything else}. */
+    private _cardData(): Record<string, unknown> {
+      const card = ((this._config as Record<string, unknown> | undefined)?.card ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const { type, ...rest } = card;
+      return { type: typeof type === 'string' ? type : '', card_config: rest };
+    }
+
+    private _cardChanged(ev: CustomEvent): void {
+      ev.stopPropagation();
+      const value = (ev.detail?.value ?? {}) as Record<string, unknown>;
+      const previous = ((this._config as Record<string, unknown> | undefined)?.card ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const body = value.card_config;
+      const rest =
+        body && typeof body === 'object' && !Array.isArray(body)
+          ? (body as Record<string, unknown>)
+          : {};
+      const type = typeof value.type === 'string' && value.type !== '' ? value.type : previous.type;
+      const next = { ...(this._config as Record<string, unknown>) };
+      next.card = { ...rest, ...(type === undefined ? {} : { type }) };
+      this._emit(next);
+    }
+
+    protected render(): TemplateResult | typeof nothing {
+      if (!this.hass || !this._config) return nothing;
+      const conditions = this._conditions;
+      return html`
+        <ha-form
+          .hass=${this.hass}
+          .data=${{ ...this._config }}
+          .schema=${SCALAR_SCHEMA}
+          .computeLabel=${(s: { name: string }) => SCALAR_LABELS[s.name] ?? s.name}
+          @value-changed=${this._scalarsChanged}
+        ></ha-form>
+
+        <div class="head">
+          <span class="title">조건</span>
+          <span class="count">${conditions.length}</span>
+        </div>
+
+        ${conditions.map(
+          (item, index) => html`
+            <div class="row">
+              <div class="grip">
+                <button
+                  class="mini"
+                  ?disabled=${index === 0}
+                  title="위로"
+                  @click=${() => this._moveCondition(index, -1)}
+                >
+                  ▲
+                </button>
+                <button
+                  class="mini"
+                  ?disabled=${index === conditions.length - 1}
+                  title="아래로"
+                  @click=${() => this._moveCondition(index, 1)}
+                >
+                  ▼
+                </button>
+              </div>
+              <ha-form
+                class="fields"
+                .hass=${this.hass}
+                .data=${this._conditionData(item)}
+                .schema=${CONDITION_SCHEMA}
+                .computeLabel=${(s: { name: string }) => CONDITION_LABELS[s.name] ?? s.name}
+                @value-changed=${(ev: CustomEvent) => this._conditionChanged(ev, index)}
+              ></ha-form>
+              <button
+                class="mini remove"
+                title="삭제"
+                @click=${() => this._removeCondition(index)}
+              >
+                ✕
+              </button>
+            </div>
+          `
+        )}
+
+        <button class="add" @click=${this._addCondition}>+ 조건 추가</button>
+
+        <div class="head"><span class="title">표시할 카드</span></div>
+        <div class="row card">
+          <ha-form
+            class="fields"
+            .hass=${this.hass}
+            .data=${this._cardData()}
+            .schema=${CARD_SCHEMA}
+            .computeLabel=${(s: { name: string }) => CARD_LABELS[s.name] ?? s.name}
+            @value-changed=${this._cardChanged}
+          ></ha-form>
+        </div>
+      `;
+    }
+
+    static styles = css`
+      :host {
+        display: block;
+      }
+      .head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 14px 0 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary-text-color);
+      }
+      .count {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--secondary-text-color);
+        background: rgba(var(--rgb-primary-text-color, 127, 127, 127), 0.08);
+        border-radius: 999px;
+        padding: 1px 7px;
+      }
+      .row {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 8px;
+        margin-bottom: 6px;
+        border-radius: 12px;
+        background: rgba(var(--rgb-primary-text-color, 127, 127, 127), 0.04);
+      }
+      .fields {
+        flex: 1;
+        min-width: 0;
+      }
+      .grip {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .mini {
+        border: none;
+        background: rgba(var(--rgb-primary-text-color, 127, 127, 127), 0.08);
+        color: var(--secondary-text-color);
+        border-radius: 8px;
+        width: 26px;
+        height: 22px;
+        font-size: 10px;
+        cursor: pointer;
+        padding: 0;
+      }
+      .mini:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+      .mini.remove {
+        height: 26px;
+        color: var(--error-color, #db4437);
+      }
+      .add {
+        border: none;
+        width: 100%;
+        padding: 10px;
+        border-radius: 12px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--primary-color);
+        background: rgba(var(--rgb-primary-color, 74, 168, 255), 0.12);
+      }
+    `;
+  }
+
+  customElements.define(tag, ConditionalEditor);
+}
+
+registerConditionalEditor(EDITOR_TAG);
 
 /** A child's own size; plenty of cards resolve it lazily or omit it entirely. */
 function cardSize(card: LovelaceCard): number {
@@ -104,6 +445,10 @@ export class SilkConditionalCard extends LitElement {
       conditions: entity ? [{ entity, state: 'on' }] : [],
       card: { type: 'custom:silk-toggle-card', entity },
     };
+  }
+
+  public static async getConfigElement(): Promise<HTMLElement> {
+    return document.createElement(EDITOR_TAG);
   }
 
   public setConfig(config: SilkConditionalCardConfig): void {

@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-room-rank-card',
@@ -21,7 +21,7 @@ export interface SilkRoomConfig {
 }
 
 export interface SilkRoomRankCardConfig extends LovelaceCardConfig {
-  /** Rooms to rank. YAML-only — it is a list of objects. */
+  /** Rooms to rank. */
   rooms: SilkRoomConfig[];
   /** The comfortable temperature every room is measured against. Default 22. */
   target?: number;
@@ -54,12 +54,14 @@ const MIN_FILL_PCT = 3;
 
 const EDITOR_TAG = 'silk-room-rank-card-editor';
 
-// `rooms` is a list of {name, temperature, humidity} objects — two entity ids
-// per row, which no single picker can express. It waits for the row editor;
-// the form covers the two settings that change how the ranking reads.
-registerEditor(
-  EDITOR_TAG,
-  [
+// A room is two entity ids plus a label, which no single picker can express —
+// so each one gets a row of its own. A fresh row starts with an empty
+// temperature picker: fill it in and the ranking picks the room up.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'rooms',
+  title: '방',
+  addLabel: '방 추가',
+  schema: [
     {
       name: '',
       type: 'grid',
@@ -69,9 +71,23 @@ registerEditor(
       ],
     },
   ],
-  { name: '이름', target: '쾌적 기준 온도' },
-  { name: DEFAULT_NAME, target: DEFAULT_TARGET }
-);
+  labels: { name: '이름', target: '쾌적 기준 온도' },
+  defaults: { name: DEFAULT_NAME, target: DEFAULT_TARGET },
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    {
+      name: 'temperature',
+      label: '온도 엔티티',
+      selector: { entity: { domain: ['sensor', 'climate', 'number', 'input_number'] } },
+    },
+    {
+      name: 'humidity',
+      label: '습도 엔티티 (선택)',
+      selector: { entity: { domain: ['sensor', 'number', 'input_number'] } },
+    },
+  ],
+  blank: { temperature: '' },
+});
 
 function readNumber(stateObj?: HassEntity): number | undefined {
   if (!stateObj || isUnavailable(stateObj) || stateObj.state === '') return undefined;

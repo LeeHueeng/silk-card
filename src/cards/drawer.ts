@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-drawer-card',
@@ -15,7 +15,8 @@ export const META = {
 export interface SilkDrawerCardConfig extends LovelaceCardConfig {
   title?: string;
   icon?: string;
-  /** YAML-only: the drawer's contents — any list of Lovelace card configs. */
+  /** The drawer's contents — any list of Lovelace card configs, one row each
+   *  in the editor (type + entity; every other key is kept as written). */
   cards?: LovelaceCardConfig[];
   /** Which edge the panel comes from. Default 'right'. */
   side?: 'right' | 'left';
@@ -42,11 +43,21 @@ const EXIT_MS = 200;
 
 const EDITOR_TAG = 'silk-drawer-card-editor';
 
-// `cards` stays YAML-only (a nested list of card configs); the editor owns the
-// four choices that change how the drawer behaves.
-registerEditor(
-  EDITOR_TAG,
-  [
+// The drawer's contents are rows: one card per row, named by its type and —
+// for the tile-shaped cards that fill a drawer — its entity. Keys the two
+// fields do not mention (rows, columns, content, …) survive every edit, so a
+// hand-written card keeps working after its neighbour is deleted.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'cards',
+  title: '서랍 속 카드',
+  addLabel: '카드 추가',
+  row: [
+    { name: 'type', label: '카드 종류 (예: tile, custom:silk-toggle-card)', selector: { text: {} } },
+    { name: 'entity', label: '엔티티', selector: { entity: {} } },
+    { name: 'name', label: '이름', selector: { text: {} } },
+  ],
+  blank: { type: 'tile' },
+  schema: [
     { name: 'title', selector: { text: {} } },
     {
       name: '',
@@ -59,8 +70,8 @@ registerEditor(
             select: {
               mode: 'dropdown',
               options: [
-                { value: 'right', label: 'Right' },
-                { value: 'left', label: 'Left' },
+                { value: 'right', label: '오른쪽' },
+                { value: 'left', label: '왼쪽' },
               ],
             },
           },
@@ -69,9 +80,9 @@ registerEditor(
     },
     { name: 'width', selector: { number: { min: MIN_WIDTH, max: MAX_WIDTH, mode: 'box' } } },
   ],
-  { title: 'Title', icon: 'Icon', side: 'Opens from', width: 'Panel width (px)' },
-  { title: DEFAULT_TITLE, side: 'right', width: DEFAULT_WIDTH }
-);
+  labels: { title: '제목', icon: '아이콘', side: '열리는 방향', width: '패널 너비 (px)' },
+  defaults: { title: DEFAULT_TITLE, side: 'right', width: DEFAULT_WIDTH },
+});
 
 /**
  * A drawer, not a dialog: one quiet 44px row on the dashboard, and everything

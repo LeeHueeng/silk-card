@@ -141,6 +141,14 @@ const EDITOR_SCHEMA: object[] = [
     name: '',
     type: 'grid',
     schema: [
+      { name: 'icon', selector: { icon: {} } },
+      { name: 'color', selector: { ui_color: {} } },
+    ],
+  },
+  {
+    name: '',
+    type: 'grid',
+    schema: [
       {
         name: 'period',
         selector: {
@@ -173,16 +181,23 @@ const EDITOR_SCHEMA: object[] = [
     ],
   },
   { name: 'currency', selector: { text: {} } },
+  { name: 'vat', selector: { boolean: {} } },
+  // The whole-home meter: its remainder becomes the muted "기타" row.
+  { name: 'unaccounted', selector: { entity: { domain: ['sensor'], device_class: ['energy'] } } },
 ];
 
 const EDITOR_LABELS: Record<string, string> = {
   devices: '전력량 센서',
   name: '이름',
+  icon: '아이콘',
+  color: '강조 색상',
   period: '기간',
   tariff: '요금제',
   rate: '단가(원/kWh)',
   base_fee: '기본요금',
   currency: '통화',
+  vat: '부가세·기금 포함 (10% + 3.7%)',
+  unaccounted: '전체 사용량 센서 (기타 행)',
 };
 
 const EDITOR_DEFAULTS: Record<string, unknown> = {

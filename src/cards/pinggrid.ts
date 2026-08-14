@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-ping-card',
@@ -21,7 +21,7 @@ export interface SilkPingHostConfig {
 }
 
 export interface SilkPingCardConfig extends LovelaceCardConfig {
-  /** Hosts to watch. YAML-only — it is a list of objects. */
+  /** Hosts to watch — a list of {entity, name?, url?}. */
   hosts: SilkPingHostConfig[];
   name?: string;
   /** Accent override. */
@@ -61,18 +61,28 @@ const RANK: Record<HostStatus, number> = { down: 0, unknown: 1, up: 2 };
 
 const EDITOR_TAG = 'silk-ping-card-editor';
 
-// `hosts` stays YAML-only (a list of objects); the header label is the one
-// setting worth a picker.
-// `hosts` stays YAML-only — a list of {entity, name, url} objects; the header
-// settings are on the form and pass through without touching the list.
-registerEditor(
-  EDITOR_TAG,
-  [
+// One form per host: the entity that answers, what to call it, and the page a
+// tap should open instead of more-info.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'hosts',
+  title: `호스트 (최대 ${MAX_HOSTS}개)`,
+  addLabel: '호스트 추가',
+  row: [
+    {
+      name: 'entity',
+      label: '엔티티',
+      selector: { entity: { domain: ['binary_sensor', 'sensor'] } },
+    },
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'url', label: '주소 (선택)', selector: { text: {} } },
+  ],
+  blank: { entity: '' },
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'color', selector: { ui_color: {} } },
   ],
-  { name: '이름', color: '강조 색상' }
-);
+  labels: { name: '이름', color: '강조 색상' },
+});
 
 /**
  * Up / down / unknown for a host entity.

@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, moreInfo, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-docker-card',
@@ -25,8 +25,8 @@ export interface SilkContainerConfig {
 }
 
 export interface SilkDockerCardConfig extends LovelaceCardConfig {
-  /** Containers to list. YAML-only — it is a list of objects. Omit to
-   *  auto-discover entities whose id mentions docker or container. */
+  /** Containers to list — one row each in the editor. Omit (or empty the list)
+   *  to auto-discover entities whose id mentions docker or container. */
   containers?: SilkContainerConfig[];
   name?: string;
   /** Rows to show, defaults to 6. */
@@ -76,11 +76,30 @@ const SIZE_LABELS = ['B', 'KB', 'MB', 'GB', 'TB'];
 
 const EDITOR_TAG = 'silk-docker-card-editor';
 
-// `containers` stays YAML-only (a list of objects with per-container metric
-// entities); everything else the card reads is on the form.
-registerEditor(
-  EDITOR_TAG,
-  [
+// Containers are rows: the state entity plus the metric and restart entities
+// that belong to it. Deleting every row drops `containers` entirely, which is
+// what turns auto-discovery back on.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'containers',
+  title: '컨테이너',
+  addLabel: '컨테이너 추가',
+  row: [
+    {
+      name: 'entity',
+      label: '상태 엔티티',
+      selector: { entity: { domain: ['sensor', 'binary_sensor', 'switch'] } },
+    },
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'cpu', label: 'CPU 엔티티', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'memory', label: '메모리 엔티티', selector: { entity: { domain: ['sensor'] } } },
+    {
+      name: 'restart',
+      label: '재시작 엔티티',
+      selector: { entity: { domain: ['button', 'input_button', 'script', 'switch', 'scene'] } },
+    },
+  ],
+  blank: { entity: '' },
+  schema: [
     { name: 'name', selector: { text: {} } },
     {
       name: '',
@@ -91,9 +110,9 @@ registerEditor(
       ],
     },
   ],
-  { name: '이름', limit: '표시 개수', color: '강조 색상' },
-  { limit: DEFAULT_LIMIT }
-);
+  labels: { name: '이름', limit: '표시 개수', color: '강조 색상' },
+  defaults: { limit: DEFAULT_LIMIT },
+});
 
 function readNumber(stateObj?: HassEntity): number | undefined {
   if (!stateObj || isUnavailable(stateObj) || stateObj.state === '') return undefined;

@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-chores-card',
@@ -24,7 +24,7 @@ export interface SilkChoreConfig {
 }
 
 export interface SilkChoresCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the chores this card rotates. */
+  /** The chores this card rotates, one row each in the editor. */
   chores: SilkChoreConfig[];
   name?: string;
   /** `domain.service` called with `{chore}` when a row's Done is pressed. */
@@ -73,22 +73,37 @@ const ENTITY_RE = /^[a-z_0-9]+\.[a-zA-Z_0-9]+$/;
 
 const EDITOR_TAG = 'silk-chores-card-editor';
 
-// Chores are a YAML roster (name + people + interval per row); the editor owns
-// only the card-level options.
-registerEditor(
-  EDITOR_TAG,
-  [
+// The roster is a row per chore: a name, the people in rotation order (a
+// multi-select that takes custom values, since these are names and not
+// entities), how often it comes round, and where its last date lives.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'chores',
+  title: '집안일',
+  addLabel: '집안일 추가',
+  blank: { name: '새 집안일', people: ['가족 1', '가족 2'], interval_days: 7 },
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    {
+      name: 'people',
+      label: '순번(사람 이름)',
+      selector: { select: { multiple: true, custom_value: true, mode: 'dropdown', options: [] } },
+    },
+    { name: 'interval_days', label: '주기(일)', selector: { number: { min: 1, mode: 'box' } } },
+    { name: 'last', label: '마지막 완료(날짜 또는 엔티티)', selector: { text: {} } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+  ],
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'done_service', selector: { text: {} } },
-    { name: 'epoch', selector: { text: {} } },
+    { name: 'epoch', selector: { date: {} } },
   ],
-  {
-    name: 'Name',
-    done_service: 'Service on Done (domain.service)',
-    epoch: 'Rotation start (YYYY-MM-DD)',
+  labels: {
+    name: '이름',
+    done_service: '완료 시 호출할 서비스(domain.service)',
+    epoch: '순번 시작일',
   },
-  { name: 'Chores', epoch: DEFAULT_EPOCH }
-);
+  defaults: { name: 'Chores', epoch: DEFAULT_EPOCH },
+});
 
 /** 'YYYY-MM-DD' and ISO stamps, read as local time (Date.parse would shift a bare date). */
 function parseDateish(raw: string): number | null {

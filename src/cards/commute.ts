@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-commute-card',
@@ -31,7 +31,7 @@ export interface SilkCommuteRouteConfig {
 }
 
 export interface SilkCommuteCardConfig extends LovelaceCardConfig {
-  /** Routes to compare. YAML-only — it is a list of objects. */
+  /** Routes to compare — one row each in the editor. */
   routes: SilkCommuteRouteConfig[];
   /** Arrival target as 'HH:MM'; adds a leave-by line off the fastest route. */
   depart_by?: string;
@@ -75,18 +75,30 @@ function minutesOf(stateObj: HassEntity | undefined): number | null {
 
 const EDITOR_TAG = 'silk-commute-card-editor';
 
-// `routes` is a list of objects, so it waits for a row editor; every scalar
-// key the card understands is on the form. `depart_by` stays a text field on
-// purpose — setConfig only accepts 'HH:MM', which a time selector would break
-// by writing seconds.
-registerEditor(
-  EDITOR_TAG,
-  [
+// Routes are rows — one form each, so the whole card is clickable. `depart_by`
+// stays a text field on purpose: setConfig only accepts 'HH:MM', which a time
+// selector would break by writing seconds.
+//
+// `typical` takes an entity here because that is the shape the travel-time
+// integrations expose; a plain number of minutes is still valid YAML and rides
+// through untouched, since the row form only rewrites the field it edits.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'routes',
+  title: '경로',
+  addLabel: '경로 추가',
+  row: [
+    { name: 'duration', label: '소요 시간 엔티티', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'typical', label: '평소 소요 엔티티', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'distance', label: '거리 엔티티', selector: { entity: { domain: ['sensor'] } } },
+  ],
+  blank: { duration: '' },
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'depart_by', selector: { text: {} } },
   ],
-  { name: '이름', depart_by: '도착 시각 (HH:MM)' }
-);
+  labels: { name: '이름', depart_by: '도착 시각 (HH:MM)' },
+});
 
 /**
  * Travel times, side by side: how long each way home takes right now, how that

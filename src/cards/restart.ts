@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-restart-card',
@@ -24,7 +24,7 @@ export interface SilkRestartAction {
 }
 
 export interface SilkRestartCardConfig extends LovelaceCardConfig {
-  /** Tiles to show. YAML-only — it is a list of objects. */
+  /** Tiles to show. */
   actions?: SilkRestartAction[];
   name?: string;
   /** Accent override. */
@@ -67,17 +67,29 @@ function iconFor(service: string): string {
 
 const EDITOR_TAG = 'silk-restart-card-editor';
 
-// `actions` stays YAML-only (a list of objects, one of them destructive);
-// the editor covers the header text and the accent.
-registerEditor(
-  EDITOR_TAG,
-  [
+// One row per tile. `danger` is a checkbox rather than a hidden YAML key,
+// because it is the difference between a tap and a deliberate hold plus a
+// confirm — the safety of this card is a thing you should be able to see.
+// With no `actions` at all the card falls back to DEFAULT_ACTIONS.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'actions',
+  title: '동작',
+  addLabel: '동작 추가',
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'color', selector: { ui_color: {} } },
   ],
-  { name: '이름', color: '강조 색상' },
-  { name: DEFAULT_NAME }
-);
+  labels: { name: '이름', color: '강조 색상' },
+  defaults: { name: DEFAULT_NAME },
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'service', label: '서비스 (domain.service)', selector: { text: {} } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+    { name: 'danger', label: '위험 (길게 눌러 실행)', selector: { boolean: {} } },
+    { name: 'data', label: '서비스 데이터 (선택)', selector: { object: {} } },
+  ],
+  blank: { name: '새 동작', service: 'homeassistant.reload_all' },
+});
 
 /**
  * The maintenance buttons you would otherwise hunt for in Developer Tools —

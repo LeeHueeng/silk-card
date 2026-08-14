@@ -4,7 +4,8 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 
 export const META = {
   type: 'silk-calendar-card',
@@ -20,7 +21,7 @@ export interface SilkCalendarCardConfig extends LovelaceCardConfig {
   days?: number;
   /** Max event rows shown (default 6). */
   limit?: number;
-  /** Per-calendar bar colors, matching `entities` order (YAML-only). */
+  /** Per-calendar bar colors, matching `entities` order. */
   colors?: string[];
 }
 
@@ -86,9 +87,15 @@ function parseBoundary(b?: ApiEventBoundary): { ms: number; allDay: boolean } | 
 
 const EDITOR_TAG = 'silk-calendar-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+/**
+ * `colors` is a parallel array to `entities` — the nth color paints the nth
+ * calendar's bar — so it is authored as a list of text values in the same
+ * order rather than as rows: pairing them into objects would change the config
+ * shape the card reads.
+ */
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    entityListSelector('entities', ['calendar']),
     { name: 'name', selector: { text: {} } },
     {
       name: '',
@@ -98,10 +105,18 @@ registerEditor(
         { name: 'limit', selector: { number: { min: 1, max: 20, mode: 'box' } } },
       ],
     },
+    { name: 'colors', selector: { text: { multiple: true } } },
   ],
-  { name: 'Name', days: 'Days ahead', limit: 'Rows shown' },
-  { days: DEFAULT_DAYS, limit: DEFAULT_LIMIT }
-);
+  labels: {
+    entities: '달력 엔티티',
+    name: '이름',
+    days: '조회 일수',
+    limit: '표시 줄 수',
+    colors: '달력 색상 (순서대로, 예: #e6a23c)',
+  },
+  defaults: { days: DEFAULT_DAYS, limit: DEFAULT_LIMIT },
+  listFields: ['entities'],
+});
 
 @customElement('silk-calendar-card')
 export class SilkCalendarCard extends LitElement {
@@ -120,7 +135,9 @@ export class SilkCalendarCard extends LitElement {
 
   public static getStubConfig(hass: HomeAssistant): Partial<SilkCalendarCardConfig> {
     const entity = Object.keys(hass.states).find((id) => id.startsWith('calendar.'));
-    return { type: 'custom:silk-calendar-card', entities: entity };
+    // The list shape, which is what the picker in the editor also writes — a
+    // bare string still works in YAML, it just cannot come back from a picker.
+    return { type: 'custom:silk-calendar-card', entities: entity ? [entity] : [] };
   }
 
   public static async getConfigElement(): Promise<HTMLElement> {

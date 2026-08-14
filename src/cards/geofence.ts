@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, moreInfo, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerListEditor } from '../shared/listeditor';
+import { registerRowsEditor } from '../shared/rows';
 import { entityListSelector } from '../shared/list';
 
 export const META = {
@@ -56,9 +56,19 @@ const AWAY_STATES = new Set(['not_home', 'unknown', 'unavailable', '']);
 
 const EDITOR_TAG = 'silk-zones-card-editor';
 
-// Zones stay YAML-only — they are objects with an optional icon, and the
-// default (auto-discovering every zone) is already the right answer for most.
-registerListEditor(EDITOR_TAG, {
+// Zones are objects (place name + optional zone entity + icon), so they get the
+// row editor; people is a plain id list and stays a multi picker above it.
+// Leaving the row list empty keeps the auto-discovery default.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'zones',
+  title: '구역 (비우면 전체 자동)',
+  addLabel: '구역 추가',
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'entity', label: '엔티티 (zone)', selector: { entity: { domain: ['zone'] } } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+  ],
+  blank: { name: '새 구역' },
   schema: [
     { name: 'name', selector: { text: {} } },
     entityListSelector('people', ['person', 'device_tracker']),
@@ -69,7 +79,6 @@ registerListEditor(EDITOR_TAG, {
     people: '표시할 사람 (비우면 전체)',
     color: '강조 색상',
   },
-  listFields: ['people'],
 });
 
 /** `front_garden` → `Front garden`, for zones with no friendly name. */

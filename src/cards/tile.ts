@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig, Point } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 import { fetchSeries } from '../data';
 import { resampleHold, niceDomain, toPxYs, buildLinePath, buildAreaPath, lastFiniteIndex } from '../graph';
 import { formatNumber } from '../format';
@@ -27,7 +27,7 @@ export interface SilkTileConfig extends LovelaceCardConfig {
   color?: string;
   unit?: string;
   hours_to_show?: number;
-  /** YAML-only: ascending stops; accent = color of the highest stop <= value. */
+  /** Ascending stops; accent = color of the highest stop <= value. */
   thresholds?: TileThreshold[];
 }
 
@@ -39,9 +39,18 @@ const REFRESH_THROTTLE_MS = 60_000;
 
 let uidCounter = 0;
 
-registerEditor(
-  'silk-tile-card-editor',
-  [
+// Thresholds are {value, color} rows: the accent follows the highest stop the
+// reading has passed, which is a list no flat form can hold.
+registerRowsEditor('silk-tile-card-editor', {
+  field: 'thresholds',
+  title: '임계값 (낮은 값부터)',
+  addLabel: '임계값 추가',
+  blank: { value: 0, color: 'green' },
+  row: [
+    { name: 'value', label: '값 이상', selector: { number: { mode: 'box', step: 'any' } } },
+    { name: 'color', label: '색상', selector: { ui_color: {} } },
+  ],
+  schema: [
     {
       name: 'entity',
       required: true,
@@ -53,7 +62,7 @@ registerEditor(
       type: 'grid',
       schema: [
         { name: 'icon', selector: { icon: {} } },
-        { name: 'color', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
     {
@@ -65,16 +74,16 @@ registerEditor(
       ],
     },
   ],
-  {
-    entity: 'Entity',
-    name: 'Name',
-    icon: 'Icon',
-    color: 'Color',
-    unit: 'Unit',
-    hours_to_show: 'Hours to show',
+  labels: {
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+    unit: '단위',
+    hours_to_show: '표시 시간(시간)',
   },
-  { hours_to_show: 24 }
-);
+  defaults: { hours_to_show: 24 },
+});
 
 @customElement('silk-tile-card')
 export class SilkTileCard extends LitElement {

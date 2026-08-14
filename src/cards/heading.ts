@@ -4,7 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, moreInfo, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -16,7 +17,7 @@ export const META = {
 export interface SilkHeadingCardConfig extends LovelaceCardConfig {
   heading: string;
   icon?: string;
-  /** YAML-only: entity ids rendered as compact live readouts after the title. */
+  /** Entity ids rendered as compact live readouts after the title. */
   chips?: string[];
   /** Navigation path; when set, tapping the heading navigates there. */
   action_path?: string;
@@ -24,19 +25,23 @@ export interface SilkHeadingCardConfig extends LovelaceCardConfig {
 
 const EDITOR_TAG = 'silk-heading-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// Chips are a plain list of entity ids, so a multi picker says all there is to
+// say; the merge keeps ids the picker cannot show untouched.
+registerListEditor(EDITOR_TAG, {
+  schema: [
     { name: 'heading', required: true, selector: { text: {} } },
     { name: 'icon', selector: { icon: {} } },
+    entityListSelector('chips'),
     { name: 'action_path', selector: { text: {} } },
   ],
-  {
-    heading: 'Heading',
-    icon: 'Icon',
-    action_path: 'Navigation path',
-  }
-);
+  labels: {
+    heading: '제목',
+    icon: '아이콘',
+    chips: '칩 엔티티',
+    action_path: '이동 경로',
+  },
+  listFields: ['chips'],
+});
 
 /** '°C'/'°F' → '°'; everything else trimmed and appended without a space. */
 function condenseUnit(unit: string): string {

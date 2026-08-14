@@ -3,7 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, moreInfo, haptic, clamp } from '../shared/service';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-floor-card',
@@ -18,7 +18,8 @@ export interface SilkFloorZoneConfig {
 }
 
 export interface SilkFloorCardConfig extends LovelaceCardConfig {
-  /** 2–8 heating loops. YAML-only — it is a list of objects. */
+  /** 2–8 heating loops — one row each in the editor. A bare entity id is still
+   *  accepted from YAML; the editor writes the `{entity, name?}` form. */
   zones: (string | SilkFloorZoneConfig)[];
   name?: string;
   color?: string;
@@ -54,19 +55,24 @@ const FULL_DEMAND_DEG = 3;
 
 const EDITOR_TAG = 'silk-floor-card-editor';
 
-// `zones` stays YAML-only (a list of objects); the header label is the only
-// thing left worth a form field.
-// `zones` stays YAML-only (a list of {entity, name} loops); the rest of the
-// card's config is on the form.
-registerEditor(
-  EDITOR_TAG,
-  [
+// Loops are rows: a climate entity and the label that names it in the manifold.
+// Row order is the display order, so the ▲▼ controls are part of the config.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'zones',
+  title: `구역 (${MIN_ZONES}–${MAX_ZONES})`,
+  addLabel: '구역 추가',
+  row: [
+    { name: 'entity', label: '엔티티', selector: { entity: { domain: ['climate'] } } },
+    { name: 'name', label: '이름', selector: { text: {} } },
+  ],
+  blank: { entity: '' },
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'color', selector: { ui_color: {} } },
   ],
-  { name: '이름', color: '강조 색상' },
-  { name: DEFAULT_NAME }
-);
+  labels: { name: '이름', color: '강조 색상' },
+  defaults: { name: DEFAULT_NAME },
+});
 
 function asNumber(value: unknown): number | undefined {
   if (value === null || value === undefined || value === '') return undefined;

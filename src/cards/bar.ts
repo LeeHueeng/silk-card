@@ -4,7 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -30,15 +30,24 @@ export interface SilkBarCardConfig extends LovelaceCardConfig {
   unit?: string;
   /** Draws a subtle notch line at this value on the track. */
   target?: number;
-  /** YAML-only threshold colors, same shape as silk-gauge. */
+  /** Threshold colors, same shape as silk-gauge; edited row by row. */
   segments?: BarSegment[];
 }
 
 const EDITOR_TAG = 'silk-bar-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// `segments` is a list of {from, color} steps — one ha-form per step, so the
+// threshold colors are clicked in rather than written by hand.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'segments',
+  title: '색상 구간',
+  addLabel: '구간 추가',
+  blank: { from: 0, color: 'blue' },
+  row: [
+    { name: 'from', label: '시작 값', selector: { number: { step: 'any', mode: 'box' } } },
+    { name: 'color', label: '색상', selector: { ui_color: {} } },
+  ],
+  schema: [
     {
       name: 'entity',
       required: true,
@@ -64,7 +73,7 @@ registerEditor(
       ],
     },
   ],
-  {
+  labels: {
     entity: '엔티티',
     name: '이름',
     min: '최솟값',
@@ -74,8 +83,8 @@ registerEditor(
     icon: '아이콘',
     color: '강조 색상',
   },
-  { min: 0, max: 100 }
-);
+  defaults: { min: 0, max: 100 },
+});
 
 @customElement('silk-bar-card')
 export class SilkBarCard extends LitElement {

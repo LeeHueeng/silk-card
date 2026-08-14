@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, moreInfo, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-addons-card',
@@ -23,8 +23,8 @@ export interface SilkAddonConfig {
 }
 
 export interface SilkAddonsCardConfig extends LovelaceCardConfig {
-  /** Add-ons to list. YAML-only — it is a list of objects. Omit to
-   *  auto-discover entities whose id mentions an add-on. */
+  /** Add-ons to list. Omit to auto-discover entities whose id mentions an
+   *  add-on. */
   addons?: SilkAddonConfig[];
   name?: string;
   /** Rows to show, defaults to 6. */
@@ -62,11 +62,14 @@ const METRIC_SUFFIX =
 
 const EDITOR_TAG = 'silk-addons-card-editor';
 
-// `addons` stays YAML-only (a list of objects with per-add-on version and
-// update entities); every scalar the card reads is on the form.
-registerEditor(
-  EDITOR_TAG,
-  [
+// Each add-on is a row of its own entities (state, version, update), which no
+// flat form can hold — so the scalars render first and the list below them gets
+// one form per row. Deleting every row restores the auto-discovery default.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'addons',
+  title: '애드온',
+  addLabel: '애드온 추가',
+  schema: [
     { name: 'name', selector: { text: {} } },
     {
       name: '',
@@ -77,9 +80,20 @@ registerEditor(
       ],
     },
   ],
-  { name: '이름', limit: '표시 개수', color: '강조 색상' },
-  { limit: DEFAULT_LIMIT }
-);
+  labels: { name: '이름', limit: '표시 개수', color: '강조 색상' },
+  defaults: { limit: DEFAULT_LIMIT },
+  row: [
+    {
+      name: 'entity',
+      label: '상태 엔티티',
+      selector: { entity: { domain: ['sensor', 'binary_sensor'] } },
+    },
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'version', label: '버전 센서', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'update', label: '업데이트 엔티티', selector: { entity: { domain: ['update'] } } },
+  ],
+  blank: { entity: '' },
+});
 
 function runStateOf(stateObj: HassEntity | undefined): RunState {
   if (!stateObj) return 'unknown';

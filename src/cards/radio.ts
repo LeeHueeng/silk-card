@@ -11,7 +11,7 @@ import {
   supportsFeature,
 } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-radio-card',
@@ -46,7 +46,7 @@ export interface SilkRadioStation {
 
 export interface SilkRadioCardConfig extends LovelaceCardConfig {
   entity: string;
-  /** YAML-only: 2–12 presets. */
+  /** 2–12 presets. */
   stations: SilkRadioStation[];
   name?: string;
   color?: string;
@@ -54,17 +54,28 @@ export interface SilkRadioCardConfig extends LovelaceCardConfig {
 
 const EDITOR_TAG = 'silk-radio-card-editor';
 
-// `stations` stays YAML-only — a list of {name, url|source, icon, image}
-// objects needs a row editor, not a flat schema row.
-registerEditor(
-  EDITOR_TAG,
-  [
+// Every preset is one row: a name plus either a stream URL or a source-list
+// entry, with an optional icon and logo. A new row starts as a placeholder
+// stream so the card keeps rendering while it is being filled in.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'stations',
+  title: '방송국',
+  addLabel: '방송국 추가',
+  schema: [
     { name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } },
     { name: 'name', selector: { text: {} } },
     { name: 'color', selector: { ui_color: {} } },
   ],
-  { entity: '미디어 플레이어', name: '이름', color: '강조 색상' }
-);
+  labels: { entity: '미디어 플레이어', name: '이름', color: '강조 색상' },
+  row: [
+    { name: 'name', label: '이름', selector: { text: {} } },
+    { name: 'url', label: '스트림 주소 (URL)', selector: { text: {} } },
+    { name: 'source', label: '입력 소스 (URL 대신)', selector: { text: {} } },
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+    { name: 'image', label: '로고 이미지 주소', selector: { text: {} } },
+  ],
+  blank: { name: '새 방송국', url: 'http://stream.example.com' },
+});
 
 /** Non-empty string attribute, else undefined. */
 function stringAttr(stateObj: HassEntity, key: string): string | undefined {

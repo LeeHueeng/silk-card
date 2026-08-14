@@ -43,6 +43,7 @@ const LABELS: Record<string, string> = {
   entities: '셀 엔티티',
   name: '이름',
   icon: '아이콘',
+  color: '강조 색상',
   condition: '조건',
   state: '상태 값',
 };
@@ -57,7 +58,14 @@ const LABELS: Record<string, string> = {
 const EDITOR_SCHEMA = [
   entityListSelector('entities'),
   { name: 'name', required: true, selector: { text: {} } },
-  { name: 'icon', selector: { icon: {} } },
+  {
+    name: '',
+    type: 'grid',
+    schema: [
+      { name: 'icon', selector: { icon: {} } },
+      { name: 'color', selector: { ui_color: {} } },
+    ],
+  },
   {
     name: 'condition',
     selector: {

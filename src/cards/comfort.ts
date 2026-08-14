@@ -37,7 +37,7 @@ export interface SilkComfortCardConfig extends LovelaceCardConfig {
   humidity: string;
   name?: string;
   color?: string;
-  /** YAML-only comfort box override, in °C / %RH. */
+  /** Comfort box override, in °C / %RH; set from the editor's own section. */
   zone?: ComfortZone;
 }
 
@@ -119,13 +119,39 @@ registerEditor(
     },
     { name: 'name', selector: { text: {} } },
     { name: 'color', selector: { ui_color: {} } },
+    {
+      // `zone` is a map of four numbers, not a list — ha-form's expandable
+      // section nests its fields under its own name, which is exactly that
+      // shape, so the comfort box is dialled in rather than typed as YAML.
+      name: 'zone',
+      type: 'expandable',
+      title: '쾌적 범위',
+      schema: [
+        {
+          name: '',
+          type: 'grid',
+          schema: [
+            { name: 't_min', selector: { number: { min: 0, max: 40, step: 0.5, mode: 'box' } } },
+            { name: 't_max', selector: { number: { min: 0, max: 40, step: 0.5, mode: 'box' } } },
+            { name: 'h_min', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+            { name: 'h_max', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+          ],
+        },
+      ],
+    },
   ],
   {
     temperature: '온도 센서',
     humidity: '습도 센서',
     name: '이름',
     color: '강조 색상',
-  }
+    zone: '쾌적 범위',
+    t_min: '최저 온도(°C)',
+    t_max: '최고 온도(°C)',
+    h_min: '최저 습도(%)',
+    h_max: '최고 습도(%)',
+  },
+  { zone: ZONE_DEFAULT }
 );
 
 @customElement('silk-comfort-card')

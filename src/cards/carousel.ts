@@ -11,7 +11,6 @@ export const META = {
   description: 'Swipe through cards like a phone.',
 };
 
-/** YAML-only card: no visual editor — configure `cards` in YAML. */
 export interface SilkCarouselCardConfig extends LovelaceCardConfig {
   cards: LovelaceCardConfig[];
   /** Page dots under the track. Default true. */
@@ -48,6 +47,283 @@ const ADVANCE_FRACTION = 0.25;
 const FLICK_VELOCITY = 0.45;
 /** Rubber-band factor when dragging past an end with `loop: false`. */
 const EDGE_RESIST = 0.35;
+
+const EDITOR_TAG = 'silk-carousel-card-editor';
+
+/** Card-level options. The slides are edited as rows underneath them. */
+const SCALAR_SCHEMA: object[] = [
+  {
+    name: '',
+    type: 'grid',
+    schema: [
+      { name: 'dots', selector: { boolean: {} } },
+      { name: 'loop', selector: { boolean: {} } },
+    ],
+  },
+  {
+    name: '',
+    type: 'grid',
+    schema: [
+      { name: 'auto', selector: { number: { min: 0, max: 600, step: 1, mode: 'box' } } },
+      { name: 'color', selector: { ui_color: {} } },
+    ],
+  },
+];
+
+const SCALAR_LABELS: Record<string, string> = {
+  dots: '페이지 점 표시',
+  loop: '끝에서 처음으로 순환',
+  auto: '자동 넘김 간격(초, 0이면 수동)',
+  color: '강조 색상',
+};
+
+/** The card's own fallbacks, so the switches read its real behaviour. */
+const SCALAR_DEFAULTS: Record<string, unknown> = { dots: true, loop: true, auto: 0 };
+
+/** One slide: the child's card type, plus that child's own options. */
+const SLIDE_SCHEMA: object[] = [
+  { name: 'type', selector: { text: {} } },
+  { name: 'config', selector: { object: {} } },
+];
+
+const SLIDE_LABELS: Record<string, string> = { type: '카드 종류', config: '카드 설정' };
+
+/** Fields the row owns outright; everything else is the child's own config. */
+const SLIDE_OWNED = ['type'];
+
+const BLANK_SLIDE: LovelaceCardConfig = { type: 'markdown', content: '새 카드' };
+
+/** A child's own options: its config minus the keys the row edits directly. */
+function slideExtras(card: Record<string, unknown> | undefined): Record<string, unknown> {
+  const extras: Record<string, unknown> = { ...(card ?? {}) };
+  for (const key of SLIDE_OWNED) delete extras[key];
+  return extras;
+}
+
+/** Fold one row's answer back into the child card config it describes. */
+function mergeSlide(
+  previous: Record<string, unknown>,
+  value: Record<string, unknown>
+): LovelaceCardConfig {
+  const raw = value.config;
+  // An emptied YAML box means "no options left", not "keep the old ones" — but
+  // a row form that never mentions `config` (it cannot, in practice) keeps them.
+  const extras =
+    'config' in value
+      ? raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? { ...(raw as Record<string, unknown>) }
+        : {}
+      : slideExtras(previous);
+  delete extras.type; // the 카드 종류 field owns the type, wherever it is typed
+  const type =
+    typeof value.type === 'string' ? value.type.trim() : String(previous.type ?? '').trim();
+  return (type ? { type, ...extras } : extras) as LovelaceCardConfig;
+}
+
+/**
+ * Slides are whole Lovelace cards, and a custom card cannot borrow HA's own
+ * card picker. So the *structure* is clickable here — add, reorder, delete,
+ * retype — while each child keeps its own options in a small YAML box. That box
+ * is the one genuinely open-ended value on this card: a child's config is
+ * whatever that child card defines, and nothing here can enumerate it.
+ */
+if (!customElements.get(EDITOR_TAG)) {
+  class SilkCarouselCardEditor extends LitElement {
+    @property({ attribute: false }) public hass?: HomeAssistant;
+    @state() private _config?: SilkCarouselCardConfig;
+
+    public setConfig(config: SilkCarouselCardConfig): void {
+      this._config = config;
+    }
+
+    private get _cards(): Record<string, unknown>[] {
+      const value = (this._config as Record<string, unknown> | undefined)?.cards;
+      return Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+    }
+
+    private _emit(next: Record<string, unknown>): void {
+      this.dispatchEvent(
+        new CustomEvent('config-changed', {
+          detail: { config: next },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+
+    /** `cards` stays present even when emptied: the card requires the key. */
+    private _setCards(cards: Record<string, unknown>[]): void {
+      this._emit({ ...(this._config as Record<string, unknown>), cards });
+    }
+
+    private _scalarsChanged(ev: CustomEvent): void {
+      ev.stopPropagation();
+      const value = (ev.detail?.value ?? {}) as Record<string, unknown>;
+      const next = { ...(this._config as Record<string, unknown>) };
+      for (const [key, raw] of Object.entries(value)) {
+        if (key === 'cards') continue; // slides are edited below, never here
+        if (raw === undefined || raw === '') delete next[key];
+        else next[key] = raw;
+      }
+      this._emit(next);
+    }
+
+    private _slideChanged(ev: CustomEvent, index: number): void {
+      ev.stopPropagation();
+      const value = (ev.detail?.value ?? {}) as Record<string, unknown>;
+      const cards = this._cards.map((card) => ({ ...card }));
+      cards[index] = mergeSlide(cards[index] ?? {}, value);
+      this._setCards(cards);
+    }
+
+    private _add(): void {
+      this._setCards([...this._cards.map((card) => ({ ...card })), { ...BLANK_SLIDE }]);
+    }
+
+    private _remove(index: number): void {
+      this._setCards(this._cards.filter((_, i) => i !== index));
+    }
+
+    private _move(index: number, delta: number): void {
+      const cards = this._cards.map((card) => ({ ...card }));
+      const target = index + delta;
+      if (target < 0 || target >= cards.length) return;
+      [cards[index], cards[target]] = [cards[target], cards[index]];
+      this._setCards(cards);
+    }
+
+    protected render(): TemplateResult | typeof nothing {
+      if (!this.hass || !this._config) return nothing;
+      const cards = this._cards;
+      return html`
+        <ha-form
+          .hass=${this.hass}
+          .data=${{ ...SCALAR_DEFAULTS, ...this._config }}
+          .schema=${SCALAR_SCHEMA}
+          .computeLabel=${(s: { name: string }) => SCALAR_LABELS[s.name] ?? s.name}
+          @value-changed=${this._scalarsChanged}
+        ></ha-form>
+
+        <div class="head">
+          <span class="title">슬라이드</span>
+          <span class="count">${cards.length}</span>
+        </div>
+
+        ${cards.map(
+          (card, index) => html`
+            <div class="row">
+              <div class="grip">
+                <button
+                  class="mini"
+                  ?disabled=${index === 0}
+                  title="위로"
+                  @click=${() => this._move(index, -1)}
+                >
+                  ▲
+                </button>
+                <button
+                  class="mini"
+                  ?disabled=${index === cards.length - 1}
+                  title="아래로"
+                  @click=${() => this._move(index, 1)}
+                >
+                  ▼
+                </button>
+              </div>
+              <ha-form
+                class="fields"
+                .hass=${this.hass}
+                .data=${{ type: card.type ?? '', config: slideExtras(card) }}
+                .schema=${SLIDE_SCHEMA}
+                .computeLabel=${(s: { name: string }) => SLIDE_LABELS[s.name] ?? s.name}
+                @value-changed=${(ev: CustomEvent) => this._slideChanged(ev, index)}
+              ></ha-form>
+              <button class="mini remove" title="삭제" @click=${() => this._remove(index)}>
+                ✕
+              </button>
+            </div>
+          `
+        )}
+
+        <button class="add" @click=${this._add}>+ 카드 추가</button>
+      `;
+    }
+
+    static styles = css`
+      :host {
+        display: block;
+      }
+      .head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 14px 0 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary-text-color);
+      }
+      .count {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--secondary-text-color);
+        background: rgba(var(--rgb-primary-text-color, 127, 127, 127), 0.08);
+        border-radius: 999px;
+        padding: 1px 7px;
+      }
+      .row {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 8px;
+        margin-bottom: 6px;
+        border-radius: 12px;
+        background: rgba(var(--rgb-primary-text-color, 127, 127, 127), 0.04);
+      }
+      .fields {
+        flex: 1;
+        min-width: 0;
+      }
+      .grip {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .mini {
+        border: none;
+        background: rgba(var(--rgb-primary-text-color, 127, 127, 127), 0.08);
+        color: var(--secondary-text-color);
+        border-radius: 8px;
+        width: 26px;
+        height: 22px;
+        font-size: 10px;
+        cursor: pointer;
+        padding: 0;
+      }
+      .mini:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+      .mini.remove {
+        height: 26px;
+        color: var(--error-color, #db4437);
+      }
+      .add {
+        border: none;
+        width: 100%;
+        padding: 10px;
+        border-radius: 12px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--primary-color);
+        background: rgba(var(--rgb-primary-color, 74, 168, 255), 0.12);
+      }
+    `;
+  }
+
+  customElements.define(EDITOR_TAG, SilkCarouselCardEditor);
+}
 
 @customElement('silk-carousel-card')
 export class SilkCarouselCard extends LitElement {
@@ -97,6 +373,10 @@ export class SilkCarouselCard extends LitElement {
         { type: 'markdown', content: 'Second card' },
       ],
     };
+  }
+
+  public static async getConfigElement(): Promise<HTMLElement> {
+    return document.createElement(EDITOR_TAG);
   }
 
   public setConfig(config: SilkCarouselCardConfig): void {

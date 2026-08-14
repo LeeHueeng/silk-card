@@ -4,6 +4,7 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
+import { registerRowsEditor } from '../shared/rows';
 
 export const META = {
   type: 'silk-navbar-card',
@@ -19,7 +20,6 @@ export interface NavbarItemConfig {
   badge_entity?: string;
 }
 
-/** YAML-only card: no visual editor — configure `items` in YAML. */
 export interface SilkNavbarCardConfig extends LovelaceCardConfig {
   items: NavbarItemConfig[];
   show_labels?: boolean;
@@ -28,6 +28,30 @@ export interface SilkNavbarCardConfig extends LovelaceCardConfig {
 }
 
 const MAX_ITEMS = 6;
+
+const EDITOR_TAG = 'silk-navbar-card-editor';
+
+// Every destination is a row: the glyph, its label, where it goes and the
+// entity that badges it. Nothing here needs YAML — the dock is a list of
+// four scalars, so the editor is a plain repeater plus the two card options.
+registerRowsEditor(EDITOR_TAG, {
+  field: 'items',
+  title: '메뉴 항목',
+  addLabel: '항목 추가',
+  blank: { icon: 'mdi:home', path: '/lovelace/0' },
+  row: [
+    { name: 'icon', label: '아이콘', selector: { icon: {} } },
+    { name: 'label', label: '이름', selector: { text: {} } },
+    { name: 'path', label: '이동 경로', selector: { text: {} } },
+    { name: 'badge_entity', label: '배지 엔티티', selector: { entity: {} } },
+  ],
+  schema: [
+    { name: 'show_labels', selector: { boolean: {} } },
+    { name: 'color', selector: { ui_color: {} } },
+  ],
+  labels: { show_labels: '이름 표시', color: '강조 색상' },
+  defaults: { show_labels: false },
+});
 
 @customElement('silk-navbar-card')
 export class SilkNavbarCard extends LitElement {
@@ -45,6 +69,10 @@ export class SilkNavbarCard extends LitElement {
       type: 'custom:silk-navbar-card',
       items: [{ icon: 'mdi:home', path: '/lovelace/0' }],
     };
+  }
+
+  public static async getConfigElement(): Promise<HTMLElement> {
+    return document.createElement(EDITOR_TAG);
   }
 
   public setConfig(config: SilkNavbarCardConfig): void {
