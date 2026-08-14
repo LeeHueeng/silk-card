@@ -192,7 +192,7 @@ import { META as WINDOWADVISOR } from './cards/windowadvisor';
 import { META as WORLDCLOCK } from './cards/worldclock';
 import { META as YEARHEAT } from './cards/yearheat';
 
-const VERSION = '0.8.0';
+const VERSION = '0.9.0';
 
 const CARDS = [
   ACTION, ACTIVITY, ADDONS, ALARM, APPLIANCE, AQI, AQUARIUM, ASSIST,

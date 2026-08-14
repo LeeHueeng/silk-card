@@ -75,15 +75,17 @@ function minutesOf(stateObj: HassEntity | undefined): number | null {
 
 const EDITOR_TAG = 'silk-commute-card-editor';
 
-// `routes` stays YAML-only (a list of objects); the header and the arrival
-// target are the two settings worth a picker.
+// `routes` is a list of objects, so it waits for a row editor; every scalar
+// key the card understands is on the form. `depart_by` stays a text field on
+// purpose — setConfig only accepts 'HH:MM', which a time selector would break
+// by writing seconds.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', selector: { text: {} } },
     { name: 'depart_by', selector: { text: {} } },
   ],
-  { name: 'Name', depart_by: 'Arrive by (HH:MM)' }
+  { name: '이름', depart_by: '도착 시각 (HH:MM)' }
 );
 
 /**

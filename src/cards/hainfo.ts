@@ -53,10 +53,12 @@ registerEditor(
   [
     { name: 'name', selector: { text: {} } },
     { name: 'uptime', selector: { entity: { domain: ['sensor', 'binary_sensor'] } } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    name: 'Name',
-    uptime: 'Uptime sensor (boot time or duration)',
+    name: '이름',
+    uptime: '가동 시간 센서(부팅 시각 또는 경과 시간)',
+    color: '강조 색상',
   }
 );
 

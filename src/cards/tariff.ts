@@ -160,9 +160,16 @@ registerEditor(
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['sensor'] } } },
     { name: 'name', selector: { text: {} } },
-    { name: 'unit', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'unit', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name', unit: 'Unit' }
+  { entity: '엔티티', name: '이름', unit: '단위', color: '강조 색상' }
 );
 
 @customElement('silk-tariff-card')

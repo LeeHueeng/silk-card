@@ -4,7 +4,6 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
 
 export const META = {
   type: 'silk-package-card',
@@ -31,7 +30,7 @@ export interface SilkPackageEntryConfig {
  */
 export interface SilkPackageCardConfig extends LovelaceCardConfig {
   entity?: string;
-  /** Per-shipment entities. YAML-only — it is a list of objects. */
+  /** Per-shipment entities, one `{ entity, name? }` entry each. */
   packages?: SilkPackageEntryConfig[];
   /** Header label; `''` drops it and leaves the in-transit count alone. */
   name?: string;
@@ -202,30 +201,118 @@ const firstString = (...values: unknown[]): string | undefined => {
 
 const EDITOR_TAG = 'silk-package-card-editor';
 
-// `packages` stays YAML-only (a list of objects); the aggregate sensor and the
-// list's shape are what a form can usefully offer.
-registerEditor(
-  EDITOR_TAG,
-  [
-    { name: 'entity', selector: { entity: { domain: ['sensor'] } } },
-    { name: 'name', selector: { text: {} } },
-    {
-      name: '',
-      type: 'grid',
-      schema: [
-        { name: 'limit', selector: { number: { min: 1, max: 20, mode: 'box' } } },
-        { name: 'keep_days', selector: { number: { min: 0, max: 30, mode: 'box' } } },
-      ],
-    },
-  ],
+const EDITOR_SCHEMA: object[] = [
+  { name: 'entity', selector: { entity: { domain: ['sensor'] } } },
+  { name: 'packages', selector: { entity: { multiple: true, domain: ['sensor'] } } },
+  { name: 'name', selector: { text: {} } },
   {
-    entity: 'Packages sensor',
-    name: 'Name',
-    limit: 'Rows shown',
-    keep_days: 'Keep delivered (days)',
+    name: '',
+    type: 'grid',
+    schema: [
+      { name: 'limit', selector: { number: { min: 1, max: 20, mode: 'box' } } },
+      { name: 'keep_days', selector: { number: { min: 0, max: 30, mode: 'box' } } },
+    ],
   },
-  { limit: DEFAULT_LIMIT, keep_days: DEFAULT_KEEP_DAYS }
-);
+];
+
+const EDITOR_LABELS: Record<string, string> = {
+  entity: '택배 센서',
+  packages: '배송별 엔티티',
+  name: '이름',
+  limit: '표시 개수',
+  keep_days: '배송 완료 유지 (일)',
+};
+
+const EDITOR_DEFAULTS: Record<string, unknown> = {
+  limit: DEFAULT_LIMIT,
+  keep_days: DEFAULT_KEEP_DAYS,
+};
+
+/** The `packages` entries a picker can speak for; malformed ones are dropped. */
+function packageEntries(list: unknown): SilkPackageEntryConfig[] {
+  if (!Array.isArray(list)) return [];
+  const out: SilkPackageEntryConfig[] = [];
+  for (const item of list) {
+    if (typeof item === 'string') {
+      if (item.includes('.')) out.push({ entity: item });
+    } else if (item && typeof item === 'object' && typeof item.entity === 'string') {
+      out.push(item as SilkPackageEntryConfig);
+    }
+  }
+  return out;
+}
+
+/**
+ * Local editor instead of the shared `registerListEditor`: that one writes the
+ * picked ids back as bare strings, and this card reads `packages` strictly as
+ * `{ entity, name }` objects. So the same multi-entity picker is shown and its
+ * answer is folded back into objects — a shipment that survives the edit keeps
+ * the `name` its YAML gave it, and keys the form never asked about ride along.
+ */
+class SilkPackageCardEditor extends LitElement {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+  @state() private _config?: SilkPackageCardConfig;
+
+  public setConfig(config: SilkPackageCardConfig): void {
+    this._config = config;
+  }
+
+  /** The list reaches the form as plain ids — that is what a picker speaks. */
+  private _formData(): Record<string, unknown> {
+    return {
+      ...EDITOR_DEFAULTS,
+      ...this._config,
+      packages: packageEntries(this._config?.packages).map((entry) => entry.entity),
+    };
+  }
+
+  protected render(): TemplateResult | typeof nothing {
+    if (!this.hass || !this._config) return nothing;
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${this._formData()}
+        .schema=${EDITOR_SCHEMA}
+        .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+    `;
+  }
+
+  private _valueChanged(ev: CustomEvent): void {
+    ev.stopPropagation();
+    const value = (ev.detail?.value ?? {}) as Record<string, unknown>;
+    const previous = (this._config ?? {}) as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...previous };
+
+    for (const [key, raw] of Object.entries(value)) {
+      if (key === 'packages') {
+        const kept = new Map(packageEntries(previous.packages).map((e) => [e.entity, e]));
+        const ids = Array.isArray(raw)
+          ? (raw as unknown[]).filter((id): id is string => typeof id === 'string')
+          : [];
+        if (ids.length) next.packages = ids.map((id) => kept.get(id) ?? { entity: id });
+        else delete next.packages;
+      } else if (raw === undefined) {
+        // An empty `name` is meaningful here — it drops the header — so only a
+        // genuinely absent answer removes a key.
+        delete next[key];
+      } else {
+        next[key] = raw;
+      }
+    }
+
+    this.dispatchEvent(
+      new CustomEvent('config-changed', {
+        detail: { config: next },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+}
+
+if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkPackageCardEditor);
 
 /**
  * Every shipment in one list: who is carrying it, where it has got to, and

@@ -109,7 +109,15 @@ registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', required: true, selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
+    { name: 'image', selector: { text: {} } },
     {
       name: '',
       type: 'grid',
@@ -118,16 +126,42 @@ registerEditor(
         { name: 'light', selector: { entity: { domain: ['sensor'] } } },
         { name: 'temperature', selector: { entity: { domain: ['sensor'] } } },
         { name: 'conductivity', selector: { entity: { domain: ['sensor'] } } },
+        { name: 'battery', selector: { entity: { domain: ['sensor'] } } },
+      ],
+    },
+    {
+      // `thresholds` is a map of three numbers, so ha-form's expandable section
+      // — which nests its fields under its own name — writes exactly that shape.
+      name: 'thresholds',
+      type: 'expandable',
+      title: '관리 기준값',
+      schema: [
+        {
+          name: '',
+          type: 'grid',
+          schema: [
+            { name: 'moisture_min', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+            { name: 'moisture_max', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+            { name: 'light_min', selector: { number: { min: 0, step: 100, mode: 'box' } } },
+          ],
+        },
       ],
     },
   ],
   {
-    name: 'Name',
-    icon: 'Icon',
-    moisture: 'Moisture sensor',
-    light: 'Light sensor',
-    temperature: 'Temperature sensor',
-    conductivity: 'Conductivity sensor',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+    image: '사진 주소',
+    moisture: '토양 습도 센서',
+    light: '조도 센서',
+    temperature: '온도 센서',
+    conductivity: '전도도 센서',
+    battery: '배터리 센서',
+    thresholds: '관리 기준값',
+    moisture_min: '최소 습도(%)',
+    moisture_max: '최대 습도(%)',
+    light_min: '최소 조도(lx)',
   },
   { icon: DEFAULT_ICON }
 );

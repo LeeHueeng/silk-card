@@ -165,15 +165,54 @@ function statusInfo(raw: string): FlightStatus {
 
 const EDITOR_TAG = 'silk-flight-card-editor';
 
-// `attrs` stays YAML-only (a nested map of attribute names); the entity and the
-// header label are what a form can usefully offer.
+/**
+ * `attrs` is a nested map of field → attribute name, which is exactly what an
+ * expandable section produces: ha-form nests its fields under the section's own
+ * name. Left untouched, every field keeps falling back to DEFAULT_ATTRS.
+ */
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['sensor'] } } },
     { name: 'name', selector: { text: {} } },
+    {
+      name: 'attrs',
+      type: 'expandable',
+      title: '속성 이름 지정',
+      icon: 'mdi:tag-text-outline',
+      schema: [
+        {
+          name: '',
+          type: 'grid',
+          schema: [
+            { name: 'status', selector: { text: {} } },
+            { name: 'flight_number', selector: { text: {} } },
+            { name: 'departure', selector: { text: {} } },
+            { name: 'arrival', selector: { text: {} } },
+            { name: 'origin', selector: { text: {} } },
+            { name: 'destination', selector: { text: {} } },
+            { name: 'gate', selector: { text: {} } },
+            { name: 'terminal', selector: { text: {} } },
+            { name: 'airline', selector: { text: {} } },
+          ],
+        },
+      ],
+    },
   ],
-  { entity: 'Flight sensor', name: 'Name' }
+  {
+    entity: '항공편 센서',
+    name: '이름',
+    attrs: '속성 이름 지정',
+    status: '상태 속성',
+    flight_number: '편명 속성',
+    departure: '출발 시각 속성',
+    arrival: '도착 시각 속성',
+    origin: '출발 공항 속성',
+    destination: '도착 공항 속성',
+    gate: '게이트 속성',
+    terminal: '터미널 속성',
+    airline: '항공사 속성',
+  }
 );
 
 /**

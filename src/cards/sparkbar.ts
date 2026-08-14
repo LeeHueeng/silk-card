@@ -134,7 +134,11 @@ registerEditor(
       type: 'grid',
       schema: [
         { name: 'icon', selector: { icon: {} } },
-        { name: 'hours', selector: { number: { min: MIN_HOURS, max: MAX_HOURS, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+        {
+          name: 'hours',
+          selector: { number: { min: MIN_HOURS, max: MAX_HOURS, step: 1, mode: 'box' } },
+        },
       ],
     },
     {
@@ -143,15 +147,22 @@ registerEditor(
         select: {
           mode: 'dropdown',
           options: [
-            { value: 'auto', label: 'Auto' },
-            { value: 'mean', label: 'Hourly average' },
-            { value: 'change', label: 'Hourly total' },
+            { value: 'auto', label: '자동' },
+            { value: 'mean', label: '시간 평균' },
+            { value: 'change', label: '시간 합계' },
           ],
         },
       },
     },
   ],
-  { entity: 'Entity', name: 'Name', icon: 'Icon', hours: 'Hours to show', mode: 'Bar value' },
+  {
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+    hours: '표시 시간',
+    mode: '막대 값',
+  },
   { hours: DEFAULT_HOURS, mode: 'auto' }
 );
 

@@ -42,15 +42,23 @@ registerEditor(
     { name: 'imported', selector: { entity: { domain: ['sensor'], device_class: 'energy' } } },
     { name: 'consumed', selector: { entity: { domain: ['sensor'], device_class: 'energy' } } },
     { name: 'name', selector: { text: {} } },
-    { name: 'period_label', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'period_label', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    solar_total: 'Solar production (kWh)',
-    exported: 'Exported to grid (kWh)',
-    imported: 'Imported from grid (kWh)',
-    consumed: 'House consumption (kWh)',
-    name: 'Name',
-    period_label: 'Period label',
+    solar_total: '태양광 생산량 (kWh)',
+    exported: '계통 송전량 (kWh)',
+    imported: '계통 수전량 (kWh)',
+    consumed: '집 소비량 (kWh)',
+    name: '이름',
+    period_label: '기간 라벨',
+    color: '강조 색상',
   }
 );
 

@@ -81,16 +81,21 @@ registerEditor(
       name: '',
       type: 'grid',
       schema: [
-        { name: 'interval', selector: { number: { min: MIN_INTERVAL_S, mode: 'box' } } },
+        {
+          name: 'interval',
+          selector: { number: { min: MIN_INTERVAL_S, step: 1, mode: 'box' } },
+        },
         { name: 'daily', selector: { boolean: {} } },
       ],
     },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    entity: 'Entity (optional source)',
-    name: 'Name',
-    interval: 'Seconds between quotes',
-    daily: 'One quote per day',
+    entity: '엔터티 (문구 출처, 선택)',
+    name: '이름',
+    interval: '문구 교체 주기 (초)',
+    daily: '하루에 한 문구',
+    color: '강조 색상',
   },
   { interval: DEFAULT_INTERVAL_S, daily: false }
 );

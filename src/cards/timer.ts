@@ -39,9 +39,16 @@ registerEditor(
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['timer'] } } },
     { name: 'name', selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name', icon: 'Icon' }
+  { entity: '엔티티', name: '이름', icon: '아이콘', color: '강조 색상' }
 );
 
 /** Parses HA timer duration strings — 'H:MM:SS', optionally 'N day(s), H:MM:SS'. */

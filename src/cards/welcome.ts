@@ -3,7 +3,8 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable } from '../shared/service';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -19,7 +20,7 @@ export interface SilkWelcomeCardConfig extends LovelaceCardConfig {
   temperature?: string;
   /** Icon for that readout. `false` hides it. Defaults to mdi:home-thermometer. */
   temperature_icon?: string | false;
-  /** YAML-only: entities counted into the "N devices on" segment. */
+  /** Entities counted into the "N devices on" segment. */
   count_active?: string[];
   /** Weather entity for the condition icon + outdoor temperature. */
   weather?: string;
@@ -51,6 +52,9 @@ const CONDITION_ICONS: Record<string, string> = {
 
 const FALLBACK_CONDITION_ICON = 'mdi:weather-partly-cloudy';
 
+/** Glyph in front of the temperature readout, unless config says otherwise. */
+const DEFAULT_TEMPERATURE_ICON = 'mdi:home-thermometer';
+
 const REFRESH_INTERVAL_MS = 60_000;
 
 /** '°C'/'°F' → '°'; everything else trimmed and appended without a space. */
@@ -61,19 +65,24 @@ function condenseUnit(unit: string): string {
 
 const EDITOR_TAG = 'silk-welcome-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+registerListEditor(EDITOR_TAG, {
+  schema: [
     { name: 'name', selector: { text: {} } },
     { name: 'temperature', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'temperature_icon', selector: { icon: {} } },
     { name: 'weather', selector: { entity: { domain: ['weather'] } } },
+    entityListSelector('count_active'),
   ],
-  {
-    name: 'Name to greet',
-    temperature: 'Temperature entity',
-    weather: 'Weather entity',
-  }
-);
+  labels: {
+    name: '인사할 이름',
+    temperature: '온도 엔티티',
+    temperature_icon: '온도 아이콘',
+    weather: '날씨 엔티티',
+    count_active: '켜짐 개수 집계',
+  },
+  defaults: { temperature_icon: DEFAULT_TEMPERATURE_ICON },
+  listFields: ['count_active'],
+});
 
 @customElement('silk-welcome-card')
 export class SilkWelcomeCard extends LitElement {
@@ -166,7 +175,7 @@ export class SilkWelcomeCard extends LitElement {
     if (!Number.isFinite(value)) return nothing;
     const unit = stateObj.attributes.unit_of_measurement;
     const text = formatNumber(this.hass, stateObj.entity_id, value);
-    const icon = this._config?.temperature_icon ?? 'mdi:home-thermometer';
+    const icon = this._config?.temperature_icon ?? DEFAULT_TEMPERATURE_ICON;
     return html`
       <span class="seg">
         ${icon === false ? nothing : html`<ha-icon .icon=${icon}></ha-icon>`}

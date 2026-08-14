@@ -24,19 +24,33 @@ export const META = {
 export interface SilkColorCardConfig extends LovelaceCardConfig {
   entity: string;
   name?: string;
+  /** Icon override; falls back to the light's own state icon. */
+  icon?: string;
+  /** Accent override. */
+  color?: string;
   /** Up to three favorite [hue 0-360, saturation 0-100] swatches. */
   favorites?: [number, number][];
 }
 
 const EDITOR_TAG = 'silk-color-card-editor';
 
+// `favorites` is a list of [hue, saturation] pairs, so it waits for a row
+// editor; the rest of the config is on the form.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['light'] } } },
     { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name' }
+  { entity: '엔티티', name: '이름', icon: '아이콘', color: '강조 색상' }
 );
 
 /** How long an optimistic override survives without a confirming state update. */

@@ -52,19 +52,31 @@ const MAX_LIMIT = 20;
 
 const EDITOR_TAG = 'silk-queue-card-editor';
 
+// `play_action` is exposed in its `'domain.service'` form — the `{service, data}`
+// form stays YAML-only and rides through the editor untouched.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } },
     { name: 'name', selector: { text: {} } },
     { name: 'queue_entity', selector: { entity: { domain: ['sensor', 'input_text'] } } },
-    { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
+    { name: 'play_action', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    entity: 'Media player',
-    name: 'Name',
-    queue_entity: 'Queue entity (optional)',
-    limit: 'Rows to show',
+    entity: '미디어 플레이어',
+    name: '이름',
+    queue_entity: '대기열 엔터티 (선택)',
+    play_action: '행 탭 서비스 (domain.service)',
+    limit: '표시 개수',
+    color: '강조 색상',
   },
   { limit: DEFAULT_LIMIT }
 );

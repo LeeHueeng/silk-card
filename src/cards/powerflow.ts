@@ -27,8 +27,8 @@ export interface SilkPowerFlowCardConfig extends LovelaceCardConfig {
   grid?: string;
   /**
    * Separate export sensor (W, positive) for integrations that split import
-   * and export into two entities. YAML-only — the editor covers the common
-   * single signed grid sensor.
+   * and export into two entities. Leave empty when a single signed grid
+   * sensor already carries both directions.
    */
   grid_export?: string;
   /** House consumption (W). Derived from the others when omitted. */
@@ -37,7 +37,7 @@ export interface SilkPowerFlowCardConfig extends LovelaceCardConfig {
   battery?: string;
   /** Battery state of charge (%). */
   battery_soc?: string;
-  /** Accent override (YAML only); default is Silk's energy teal. */
+  /** Accent override; default is Silk's energy teal. */
   color?: string;
 }
 
@@ -182,19 +182,23 @@ registerEditor(
   [
     { name: 'solar', selector: { entity: { domain: ['sensor'], device_class: 'power' } } },
     { name: 'grid', selector: { entity: { domain: ['sensor'], device_class: 'power' } } },
+    { name: 'grid_export', selector: { entity: { domain: ['sensor'], device_class: 'power' } } },
     { name: 'home', selector: { entity: { domain: ['sensor'], device_class: 'power' } } },
     { name: 'battery', selector: { entity: { domain: ['sensor'], device_class: 'power' } } },
     {
       name: 'battery_soc',
       selector: { entity: { domain: ['sensor'], device_class: 'battery' } },
     },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    solar: 'Solar production (W)',
-    grid: 'Grid power (W, − = export)',
-    home: 'House consumption (W)',
-    battery: 'Battery power (W, + = charge)',
-    battery_soc: 'Battery charge (%)',
+    solar: '태양광 발전 (W)',
+    grid: '계통 전력 (W, − = 송전)',
+    grid_export: '계통 송전 센서 (W, 별도 분리형)',
+    home: '집 소비 전력 (W)',
+    battery: '배터리 전력 (W, + = 충전)',
+    battery_soc: '배터리 잔량 (%)',
+    color: '강조 색상',
   }
 );
 

@@ -41,15 +41,42 @@ export function entityIds(list: EntityListConfig): string[] {
   return normalizeEntityList(list).map((item) => item.entity);
 }
 
-/**
- * True when the list carries per-item detail the picker cannot express. The
- * editor shows a read-only note instead of a picker in that case, so opening
- * the editor can never silently flatten a hand-tuned config.
- */
+/** True when the list carries per-item detail a bare id list cannot express. */
 export function hasItemDetail(list: EntityListConfig): boolean {
   return normalizeEntityList(list).some(
     (item) => item.name !== undefined || item.icon !== undefined || item.color !== undefined
   );
+}
+
+/**
+ * Fold the picker's answer (a list of ids) back into the previous list,
+ * keeping whatever detail each surviving entry already had.
+ *
+ * This is what lets the picker stay on screen for a hand-written config:
+ * removing an entity drops its entry, adding one appends a bare id, and the
+ * entries that stay keep their name, icon and color untouched.
+ */
+export function mergeEntityList(
+  previous: EntityListConfig,
+  ids: string[]
+): (string | EntityItem)[] {
+  const byId = new Map(normalizeEntityList(previous).map((item) => [item.entity, item]));
+  const merged: (string | EntityItem)[] = ids.map((id) => {
+    const item = byId.get(id);
+    if (!item) return id;
+    const detailed = Object.keys(item).some((key) => key !== 'entity');
+    return detailed ? item : id;
+  });
+
+  // Entries an entity picker cannot represent — a launcher tile that only
+  // navigates, a device row built from separate battery/signal sensors — are
+  // invisible to the form. Carry them through instead of letting a click in
+  // the picker delete them.
+  const orphans = (Array.isArray(previous) ? previous : []).filter(
+    (item): item is EntityItem =>
+      typeof item === 'object' && item !== null && typeof item.entity !== 'string'
+  );
+  return [...merged, ...orphans];
 }
 
 /** ha-form schema entry for a multi-entity picker. */

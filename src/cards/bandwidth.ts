@@ -59,9 +59,16 @@ registerEditor(
   [
     { name: 'name', selector: { text: {} } },
     { name: 'total', selector: { entity: { domain: ['sensor'] } } },
-    { name: 'unit', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'unit', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { name: 'Name', total: 'Total throughput', unit: 'Assumed unit' }
+  { name: '이름', total: '전체 처리량 센서', unit: '단위', color: '강조 색상' }
 );
 
 const PREFIX_POWER: Record<string, number> = { k: 1, m: 2, g: 3, t: 4 };

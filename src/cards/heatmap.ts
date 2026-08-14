@@ -126,9 +126,17 @@ registerEditor(
       selector: { entity: { domain: ['sensor', 'number', 'input_number'] } },
     },
     { name: 'name', selector: { text: {} } },
-    { name: 'days', selector: { number: { min: 1, max: MAX_DAYS, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'days', selector: { number: { min: 1, max: MAX_DAYS, step: 1, mode: 'box' } } },
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name', days: 'Days to show' },
+  { entity: '엔티티', name: '이름', days: '표시 일수', icon: '아이콘', color: '강조 색상' },
   { days: DEFAULT_DAYS }
 );
 

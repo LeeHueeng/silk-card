@@ -66,13 +66,15 @@ registerEditor(
         { name: 'currency', selector: { text: {} } },
       ],
     },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    name: 'Name',
-    min: 'Standby from (W)',
-    max: 'Standby up to (W)',
-    rate: 'Price per kWh',
-    currency: 'Currency',
+    name: '이름',
+    min: '대기 시작(W)',
+    max: '대기 상한(W)',
+    rate: 'kWh당 요금',
+    currency: '통화',
+    color: '강조 색상',
   },
   { min: DEFAULT_MIN, max: DEFAULT_MAX, currency: DEFAULT_CURRENCY }
 );

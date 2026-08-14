@@ -52,15 +52,23 @@ registerEditor(
       name: 'month',
       selector: { entity: { domain: ['sensor'], device_class: 'energy' } },
     },
-    { name: 'icon', selector: { icon: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    name: 'Name',
-    power: 'Live power (W)',
-    today: 'Today (kWh)',
-    yesterday: 'Yesterday (kWh)',
-    month: 'This month (kWh)',
-    icon: 'Icon',
+    name: '이름',
+    power: '실시간 전력 (W)',
+    today: '오늘 사용량 (kWh)',
+    yesterday: '어제 사용량 (kWh)',
+    month: '이번 달 사용량 (kWh)',
+    icon: '아이콘',
+    color: '강조 색상',
   }
 );
 

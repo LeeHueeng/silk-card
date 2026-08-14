@@ -54,13 +54,16 @@ export interface SilkRadioCardConfig extends LovelaceCardConfig {
 
 const EDITOR_TAG = 'silk-radio-card-editor';
 
+// `stations` stays YAML-only — a list of {name, url|source, icon, image}
+// objects needs a row editor, not a flat schema row.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } },
     { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { entity: 'Entity', name: 'Name' }
+  { entity: '미디어 플레이어', name: '이름', color: '강조 색상' }
 );
 
 /** Non-empty string attribute, else undefined. */

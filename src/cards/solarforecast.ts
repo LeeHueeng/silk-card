@@ -97,13 +97,21 @@ registerEditor(
     { name: 'entity', required: true, selector: { entity: { domain: ['sensor'] } } },
     { name: 'actual', selector: { entity: { domain: ['sensor'], device_class: 'power' } } },
     { name: 'name', selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    entity: 'Forecast sensor (hourly watts)',
-    actual: 'Live production (W)',
-    name: 'Name',
-    icon: 'Icon',
+    entity: '예보 센서 (시간별 W)',
+    actual: '실시간 발전량 (W)',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
   }
 );
 

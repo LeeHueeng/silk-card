@@ -108,8 +108,16 @@ registerEditor(
       ],
     },
     { name: 'icon', selector: { icon: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { entity: 'Entity', name: 'Name', days: 'Days to bucket', bins: 'Bars', icon: 'Icon' },
+  {
+    entity: '엔티티',
+    name: '이름',
+    days: '집계 일수',
+    bins: '막대 개수',
+    icon: '아이콘',
+    color: '강조 색상',
+  },
   { days: DEFAULT_DAYS, bins: DEFAULT_BINS }
 );
 

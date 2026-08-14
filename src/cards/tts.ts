@@ -53,13 +53,28 @@ registerEditor(
         { name: 'language', selector: { text: {} } },
       ],
     },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
+    // Phrases are plain strings, so the multi-value text selector authors them
+    // without a row editor.
+    { name: 'presets', selector: { text: { multiple: true } } },
   ],
   {
-    entity: 'Speaker',
-    name: 'Name',
-    engine: 'TTS engine',
-    language: 'Language',
-  }
+    entity: '스피커',
+    name: '이름',
+    engine: 'TTS 엔진',
+    language: '언어',
+    icon: '아이콘',
+    color: '강조 색상',
+    presets: '빠른 문구',
+  },
+  { name: DEFAULT_NAME, icon: DEFAULT_ICON }
 );
 
 /** Configured engine, else the first `tts.*` entity the instance exposes. */

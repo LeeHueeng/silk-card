@@ -53,8 +53,29 @@ registerEditor(
       selector: { entity: { domain: ['sensor', 'number', 'input_number'] } },
     },
     { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'label', selector: { text: {} } },
+        { name: 'label2', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+        { name: 'color2', selector: { ui_color: {} } },
+      ],
+    },
+    { name: 'hours_to_show', selector: { number: { min: 1, max: 168, step: 1, mode: 'box' } } },
   ],
-  { entity: 'Entity', entity2: 'Second entity', name: 'Name' }
+  {
+    entity: '첫 번째 엔티티',
+    entity2: '두 번째 엔티티',
+    name: '이름',
+    label: '첫 번째 이름표',
+    label2: '두 번째 이름표',
+    color: '강조 색상',
+    color2: '두 번째 색상',
+    hours_to_show: '표시 시간',
+  },
+  { hours_to_show: DEFAULT_HOURS }
 );
 
 @customElement('silk-compare-card')

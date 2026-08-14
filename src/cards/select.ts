@@ -33,8 +33,23 @@ registerEditor(
     { name: 'entity', required: true, selector: { entity: { domain: DOMAINS } } },
     { name: 'name', selector: { text: {} } },
     { name: 'icon', selector: { icon: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'chip_limit', selector: { number: { min: 1, max: 12, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name', icon: 'Icon' }
+  {
+    entity: '엔터티',
+    name: '이름',
+    icon: '아이콘',
+    chip_limit: '칩 최대 개수',
+    color: '강조 색상',
+  },
+  { chip_limit: DEFAULT_CHIP_LIMIT }
 );
 
 /** Raw option → display label (select entities often carry snake_case options). */

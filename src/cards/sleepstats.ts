@@ -114,16 +114,18 @@ registerEditor(
         { name: 'wake', selector: { entity: {} } },
       ],
     },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    duration: 'Sleep duration',
-    name: 'Name',
-    score: 'Sleep score',
-    deep: 'Deep sleep',
-    rem: 'REM sleep',
-    awake: 'Awake',
-    bedtime: 'Bedtime',
-    wake: 'Wake-up',
+    duration: '수면 시간',
+    name: '이름',
+    score: '수면 점수',
+    deep: '깊은 수면',
+    rem: '렘수면',
+    awake: '깬 시간',
+    bedtime: '취침 시각',
+    wake: '기상 시각',
+    color: '강조 색상',
   }
 );
 

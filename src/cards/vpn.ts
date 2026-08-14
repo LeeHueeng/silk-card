@@ -53,14 +53,15 @@ const IDLE_STATES = new Set([
 const EDITOR_TAG = 'silk-vpn-card-editor';
 
 // Peers stay YAML-only — three nested entity pickers per row would dwarf the
-// card; the editor owns the title and the tunnel switch.
+// card; the editor owns the title, the tunnel switch and the accent.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', selector: { text: {} } },
     { name: 'toggle', selector: { entity: { domain: ['switch', 'input_boolean'] } } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { name: 'Name', toggle: 'Tunnel switch' },
+  { name: '이름', toggle: '터널 스위치', color: '강조 색상' },
   { name: 'VPN' }
 );
 

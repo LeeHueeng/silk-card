@@ -30,16 +30,27 @@ registerEditor(
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['lock'] } } },
     { name: 'name', selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
-    { name: 'hold_time', selector: { number: { min: 300, max: 5000, step: 100, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        {
+          name: 'hold_time',
+          selector: { number: { min: 300, max: 5000, step: 100, mode: 'box' } },
+        },
+      ],
+    },
     { name: 'instant', selector: { boolean: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    entity: 'Entity',
-    name: 'Name',
-    icon: 'Icon',
-    hold_time: 'Hold time (ms)',
-    instant: 'Instant unlock (tap, no hold)',
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    hold_time: '길게 누르는 시간(ms)',
+    instant: '바로 열기(길게 누르지 않음)',
+    color: '강조 색상',
   },
   { hold_time: 1200 }
 );

@@ -8,9 +8,9 @@ import {
   EntityItem,
   EntityListConfig,
   entityListSelector,
-  hasItemDetail,
   normalizeEntityList,
 } from '../shared/list';
+import { registerListEditor } from '../shared/listeditor';
 
 export const META = {
   type: 'silk-presence-card',
@@ -36,58 +36,22 @@ const EDITOR_LABELS: Record<string, string> = {
   name: '이름',
 };
 
-const YAML_ONLY_NOTE = 'YAML에 항목별 설정이 있어 편집기에서 건드리지 않습니다';
-
 /**
- * The schema depends on the config, so this card owns its editor element
- * instead of using the fixed-schema `registerEditor` helper: once the list
- * carries hand-written per-person detail the picker is replaced by a read-only
- * note, and ha-form passes untouched every key its schema never mentions.
+ * One schema, the picker always on screen. A hand-written
+ * `{entity, name, icon, color}` face reaches the form as a bare id and the
+ * picked ids are folded back into the stored list on change, so relabelled
+ * people keep their detail; keys the schema never mentions pass through.
  */
-function presenceSchema(config: SilkPresenceCardConfig): Record<string, unknown>[] {
-  return [
-    hasItemDetail(config.entities)
-      ? { name: 'entities', type: 'constant', value: YAML_ONLY_NOTE }
-      : entityListSelector('entities', ['person', 'device_tracker']),
-    { name: 'name', selector: { text: {} } },
-  ];
-}
+const EDITOR_SCHEMA = [
+  entityListSelector('entities', ['person', 'device_tracker']),
+  { name: 'name', selector: { text: {} } },
+];
 
-class SilkPresenceCardEditor extends LitElement {
-  @property({ attribute: false }) public hass?: HomeAssistant;
-
-  @state() private _config?: SilkPresenceCardConfig;
-
-  public setConfig(config: SilkPresenceCardConfig): void {
-    this._config = config;
-  }
-
-  protected render(): TemplateResult | typeof nothing {
-    if (!this.hass || !this._config) return nothing;
-    return html`
-      <ha-form
-        .hass=${this.hass}
-        .data=${this._config}
-        .schema=${presenceSchema(this._config)}
-        .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
-        @value-changed=${this._valueChanged}
-      ></ha-form>
-    `;
-  }
-
-  private _valueChanged(ev: CustomEvent): void {
-    ev.stopPropagation();
-    this.dispatchEvent(
-      new CustomEvent('config-changed', {
-        detail: { config: ev.detail.value },
-        bubbles: true,
-        composed: true,
-      })
-    );
-  }
-}
-
-if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkPresenceCardEditor);
+registerListEditor(EDITOR_TAG, {
+  schema: EDITOR_SCHEMA,
+  labels: EDITOR_LABELS,
+  listFields: ['entities'],
+});
 
 /**
  * The family strip: one 44px avatar per person. Home reads as presence —

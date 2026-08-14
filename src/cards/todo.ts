@@ -39,9 +39,16 @@ registerEditor(
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['todo'] } } },
     { name: 'name', selector: { text: {} } },
-    { name: 'limit', selector: { number: { min: 1, max: 15, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'limit', selector: { number: { min: 1, max: 15, mode: 'box' } } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name', limit: 'Items shown' },
+  { entity: '엔티티', name: '이름', icon: '아이콘', limit: '표시 개수' },
   { limit: DEFAULT_LIMIT }
 );
 

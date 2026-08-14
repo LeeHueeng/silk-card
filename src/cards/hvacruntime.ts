@@ -114,13 +114,15 @@ registerEditor(
       ],
     },
     { name: 'compare_yesterday', selector: { boolean: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    entity: 'Entity',
-    name: 'Name',
-    icon: 'Icon',
-    hours_to_show: 'Hours to account for',
-    compare_yesterday: 'Compare with the previous period',
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    hours_to_show: '집계 시간',
+    compare_yesterday: '직전 구간과 비교',
+    color: '강조 색상',
   },
   { hours_to_show: DEFAULT_HOURS, compare_yesterday: false }
 );

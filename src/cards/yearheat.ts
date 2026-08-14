@@ -120,12 +120,13 @@ registerEditor(
       name: '',
       type: 'grid',
       schema: [
+        { name: 'icon', selector: { icon: {} } },
         { name: 'weeks', selector: { number: { min: MIN_WEEKS, max: MAX_WEEKS, mode: 'box' } } },
-        { name: 'color', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
-  { entity: 'Entity', name: 'Name', weeks: 'Weeks to show', color: 'Color' },
+  { entity: '엔티티', name: '이름', icon: '아이콘', weeks: '표시 주 수', color: '강조 색상' },
   { weeks: DEFAULT_WEEKS }
 );
 

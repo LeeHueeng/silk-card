@@ -13,7 +13,8 @@ import {
   clamp,
 } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 import '../shared/slider';
 
 export const META = {
@@ -38,11 +39,21 @@ export interface SilkMediaGroupCardConfig extends LovelaceCardConfig {
 
 const EDITOR_TAG = 'silk-media-group-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [{ name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } }],
-  { entity: 'Entity' }
-);
+// The candidate list reaches the form as bare ids and is folded back on
+// change, so a hand-written order survives an edit through the picker.
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    { name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } },
+    { name: 'name', selector: { text: {} } },
+    entityListSelector('players', ['media_player']),
+  ],
+  labels: {
+    entity: '엔티티 (그룹 마스터)',
+    name: '이름',
+    players: '함께 묶을 스피커',
+  },
+  listFields: ['players'],
+});
 
 /** Non-empty string attribute, else undefined. */
 function stringAttr(stateObj: HassEntity, key: string): string | undefined {

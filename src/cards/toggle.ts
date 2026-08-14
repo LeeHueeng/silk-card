@@ -42,14 +42,22 @@ registerEditor(
       },
     },
     { name: 'name', selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
     { name: 'confirm', selector: { boolean: {} } },
   ],
   {
-    entity: 'Entity',
-    name: 'Name',
-    icon: 'Icon',
-    confirm: 'Ask before switching',
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+    confirm: '전환 전 확인',
   }
 );
 

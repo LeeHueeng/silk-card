@@ -4,12 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import {
-  EntityItem,
-  entityListSelector,
-  hasItemDetail,
-  normalizeEntityList,
-} from '../shared/list';
+import { EntityItem, entityListSelector, normalizeEntityList } from '../shared/list';
+import { registerListEditor } from '../shared/listeditor';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -52,78 +48,22 @@ const EDITOR_LABELS: Record<string, string> = {
 };
 
 /**
- * The schema depends on the config, so this card hosts its own ha-form rather
- * than using registerEditor's fixed schema: when the YAML gives devices their
- * own name/icon, `devices` is left out of the schema entirely and that
- * hand-written list rides through the round trip untouched.
+ * One editor, picker always present. The picker answers with bare ids, which
+ * are folded back into the stored list: a device that survives the edit keeps
+ * the name and icon its YAML gave it, and keys the schema never mentions
+ * (`type`, `grid_options`, `color`) ride through untouched.
  */
-function breakdownSchema(config: SilkBreakdownCardConfig): Record<string, unknown>[] {
-  const schema: Record<string, unknown>[] = [];
-  if (!hasItemDetail(config.devices)) schema.push(entityListSelector('devices', ['sensor']));
-  schema.push(
-    { name: 'unaccounted', selector: { entity: { domain: ['sensor'] } } },
-    { name: 'name', selector: { text: {} } }
-  );
-  return schema;
-}
+const EDITOR_SCHEMA: object[] = [
+  entityListSelector('devices', ['sensor']),
+  { name: 'unaccounted', selector: { entity: { domain: ['sensor'] } } },
+  { name: 'name', selector: { text: {} } },
+];
 
-if (!customElements.get(EDITOR_TAG)) {
-  class SilkBreakdownCardEditor extends LitElement {
-    @property({ attribute: false }) public hass?: HomeAssistant;
-
-    @state() private _config?: SilkBreakdownCardConfig;
-
-    public setConfig(config: SilkBreakdownCardConfig): void {
-      this._config = config;
-    }
-
-    protected render(): TemplateResult | typeof nothing {
-      const config = this._config;
-      if (!this.hass || !config) return nothing;
-      const detailed = hasItemDetail(config.devices);
-      return html`
-        <ha-form
-          .hass=${this.hass}
-          .data=${config}
-          .schema=${breakdownSchema(config)}
-          .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
-          @value-changed=${this._valueChanged}
-        ></ha-form>
-        ${detailed
-          ? html`<p class="note">
-              기기 ${normalizeEntityList(config.devices).length}개에 이름·아이콘이 지정되어 있어
-              목록은 YAML에서만 편집할 수 있습니다. 다른 설정은 여기서 바꿔도 목록은 그대로
-              유지됩니다.
-            </p>`
-          : nothing}
-      `;
-    }
-
-    private _valueChanged(ev: CustomEvent): void {
-      ev.stopPropagation();
-      // Merged onto the existing config so keys the schema left out — a
-      // hand-written `devices` list, `type` — survive the round trip.
-      const config = { ...this._config, ...(ev.detail.value as Record<string, unknown>) };
-      this.dispatchEvent(
-        new CustomEvent('config-changed', {
-          detail: { config },
-          bubbles: true,
-          composed: true,
-        })
-      );
-    }
-
-    static styles = css`
-      .note {
-        margin: 10px 4px 0;
-        font-size: 12px;
-        line-height: 1.45;
-        color: var(--secondary-text-color);
-      }
-    `;
-  }
-  customElements.define(EDITOR_TAG, SilkBreakdownCardEditor);
-}
+registerListEditor(EDITOR_TAG, {
+  schema: EDITOR_SCHEMA,
+  labels: EDITOR_LABELS,
+  listFields: ['devices'],
+});
 
 /** A resolved bar: `value` is null when the sensor can't be read. */
 interface BreakdownRow {

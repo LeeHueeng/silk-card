@@ -74,7 +74,16 @@ function deriveSpan(stateObj: HassEntity, now: number): SunSpan | null {
 
 const EDITOR_TAG = 'silk-sun-card-editor';
 
-registerEditor(EDITOR_TAG, [{ name: 'name', selector: { text: {} } }], { name: 'Name' });
+registerEditor(
+  EDITOR_TAG,
+  [
+    { name: 'entity', selector: { entity: { domain: ['sun'] } } },
+    { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
+  ],
+  { entity: '엔티티', name: '이름', color: '강조 색상' },
+  { entity: DEFAULT_ENTITY }
+);
 
 @customElement('silk-sun-card')
 export class SilkSunCard extends LitElement {

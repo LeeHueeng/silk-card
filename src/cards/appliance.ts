@@ -128,17 +128,46 @@ registerEditor(
         { name: 'finish_at', selector: { entity: { domain: ['sensor'] } } },
       ],
     },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        {
+          name: 'power_threshold',
+          selector: { number: { min: 0, max: 5000, step: 1, mode: 'box' } },
+        },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
+    {
+      name: 'done_states',
+      selector: {
+        select: {
+          mode: 'dropdown',
+          multiple: true,
+          custom_value: true,
+          options: DEFAULT_DONE_STATES.map((value) => ({ value, label: value })),
+        },
+      },
+    },
   ],
   {
-    name: 'Name',
-    icon: 'Icon',
-    state: 'State sensor',
-    power: 'Power (W)',
-    program: 'Program',
-    remaining: 'Time remaining',
-    finish_at: 'Finish time',
+    name: '이름',
+    icon: '아이콘',
+    state: '상태 센서',
+    power: '전력 센서(W)',
+    program: '코스',
+    remaining: '남은 시간',
+    finish_at: '종료 시각',
+    power_threshold: '동작 판단 전력(W)',
+    done_states: '완료 상태 값',
+    color: '강조 색상',
   },
-  { icon: DEFAULT_ICON }
+  {
+    icon: DEFAULT_ICON,
+    power_threshold: DEFAULT_POWER_THRESHOLD,
+    done_states: [...DEFAULT_DONE_STATES],
+  }
 );
 
 /**

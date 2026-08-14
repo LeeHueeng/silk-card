@@ -47,15 +47,27 @@ registerEditor(
     { name: 'download', required: true, selector: { entity: { domain: ['sensor'] } } },
     { name: 'upload', required: true, selector: { entity: { domain: ['sensor'] } } },
     { name: 'name', selector: { text: {} } },
-    { name: 'hours_to_show', selector: { number: { min: 1, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'hours_to_show', selector: { number: { min: 1, max: 168, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+        { name: 'upload_color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    download: 'Download entity',
-    upload: 'Upload entity',
-    name: 'Name',
-    hours_to_show: 'Hours to show',
+    download: '다운로드 엔티티',
+    upload: '업로드 엔티티',
+    name: '이름',
+    icon: '아이콘',
+    hours_to_show: '표시 시간',
+    color: '강조 색상',
+    upload_color: '업로드 색상',
   },
-  { hours_to_show: DEFAULT_HOURS }
+  { icon: DEFAULT_ICON, hours_to_show: DEFAULT_HOURS }
 );
 
 /**

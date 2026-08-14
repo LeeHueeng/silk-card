@@ -80,14 +80,16 @@ registerEditor(
       ],
     },
     { name: 'notify_service', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    name: 'Name',
-    work: 'Work minutes',
-    short_break: 'Short break',
-    long_break: 'Long break',
-    rounds: 'Rounds',
-    notify_service: 'Notify service (domain.service)',
+    name: '이름',
+    work: '집중 시간 (분)',
+    short_break: '짧은 휴식 (분)',
+    long_break: '긴 휴식 (분)',
+    rounds: '라운드 수',
+    notify_service: '알림 서비스 (domain.service)',
+    color: '강조 색상',
   },
   { ...DEFAULTS }
 );

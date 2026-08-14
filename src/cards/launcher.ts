@@ -4,7 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isActive, isUnavailable, toggleEntity, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { EntityItem, normalizeEntityList, hasItemDetail, entityListSelector } from '../shared/list';
+import { normalizeEntityList, entityListSelector } from '../shared/list';
+import { registerListEditor } from '../shared/listeditor';
 
 export const META = {
   type: 'silk-launcher-card',
@@ -121,91 +122,29 @@ function resolveItems(items: LauncherItemEntry[] | undefined): ResolvedItem[] {
   );
 }
 
-/**
- * True when the list carries detail an entity picker cannot express — a tap
- * action, an entity-less tile, or the shared name/icon/color detail. The editor
- * then leaves `items` out of its schema entirely, so nothing hand-written is
- * flattened by opening the visual editor.
- */
-function itemsHaveDetail(items: LauncherItemEntry[] | undefined): boolean {
-  if (!Array.isArray(items)) return false;
-  const objects = items.filter(
-    (item): item is LauncherItemConfig => typeof item === 'object' && item !== null
-  );
-  if (objects.some((item) => item.tap !== undefined || typeof item.entity !== 'string')) return true;
-  return hasItemDetail(objects.map((item): EntityItem => ({ ...item, entity: String(item.entity) })));
-}
-
 const EDITOR_TAG = 'silk-launcher-card-editor';
 
 /** Shortcuts point at things you can command; anything else opens more-info. */
 const PICKER_DOMAINS = [...CONTROLLABLE, 'climate', 'media_player', 'vacuum'].sort();
 
-const LABELS: Record<string, string> = {
-  items: '바로가기 엔티티',
-  name: '이름',
-};
-
-const NAME_FIELD = { name: 'name', selector: { text: {} } };
-/** Stable arrays: a new schema identity on every render would rebuild the form. */
-const SCHEMA_FULL = [entityListSelector('items', PICKER_DOMAINS), NAME_FIELD];
-const SCHEMA_NO_ITEMS = [NAME_FIELD];
-
 /**
- * Hand-rolled rather than `registerEditor` because the schema depends on the
- * config: the `items` field must disappear when the list carries YAML detail.
+ * The picker is always on screen, even for a hand-written list: the ids it
+ * returns are folded back into the stored items, so every tile that survives
+ * keeps its icon, name, color and `tap` exactly as authored. Only a tile with
+ * no `entity` at all — a pure navigate/url shortcut — cannot be represented in
+ * an entity picker; such a list is still best edited in YAML.
  */
-class SilkLauncherCardEditor extends LitElement {
-  @property({ attribute: false }) public hass?: HomeAssistant;
-
-  @state() private _config?: SilkLauncherCardConfig;
-
-  public setConfig(config: SilkLauncherCardConfig): void {
-    this._config = config;
-  }
-
-  protected render(): TemplateResult | typeof nothing {
-    const config = this._config;
-    if (!this.hass || !config) return nothing;
-    const detail = itemsHaveDetail(config.items);
-    return html`
-      <ha-form
-        .hass=${this.hass}
-        .data=${config}
-        .schema=${detail ? SCHEMA_NO_ITEMS : SCHEMA_FULL}
-        .computeLabel=${(field: { name: string }) => LABELS[field.name] ?? field.name}
-        @value-changed=${this._valueChanged}
-      ></ha-form>
-      ${detail
-        ? html`<div class="note">
-            항목별 아이콘·동작이 지정되어 있어 목록은 YAML에서만 편집할 수 있습니다.
-          </div>`
-        : nothing}
-    `;
-  }
-
-  private _valueChanged(ev: CustomEvent): void {
-    ev.stopPropagation();
-    this.dispatchEvent(
-      new CustomEvent('config-changed', {
-        detail: { config: ev.detail.value },
-        bubbles: true,
-        composed: true,
-      })
-    );
-  }
-
-  static styles = css`
-    .note {
-      margin-top: 8px;
-      font-size: 12px;
-      line-height: 1.4;
-      color: var(--secondary-text-color);
-    }
-  `;
-}
-
-if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkLauncherCardEditor);
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    entityListSelector('items', PICKER_DOMAINS),
+    { name: 'name', selector: { text: {} } },
+  ],
+  labels: {
+    items: '바로가기 엔티티',
+    name: '이름',
+  },
+  listFields: ['items'],
+});
 
 @customElement('silk-launcher-card')
 export class SilkLauncherCard extends LitElement {

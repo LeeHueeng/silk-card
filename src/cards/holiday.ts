@@ -120,12 +120,14 @@ registerEditor(
     { name: 'workday', selector: { entity: { domain: ['binary_sensor'] } } },
     { name: 'name', selector: { text: {} } },
     { name: 'show_details', selector: { boolean: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    entity: 'Holiday calendar or sensor',
-    workday: 'Workday sensor',
-    name: 'Name',
-    show_details: 'Show week & day number',
+    entity: '공휴일 캘린더 또는 센서',
+    workday: '근무일 센서',
+    name: '이름',
+    show_details: '주차·일수 표시',
+    color: '강조 색상',
   },
   { show_details: false }
 );

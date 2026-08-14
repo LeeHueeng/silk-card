@@ -43,8 +43,9 @@ registerEditor(
       selector: { entity: { multiple: true, domain: ['media_player'] } },
     },
     { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { players: 'Players (2–8)', name: 'Name' }
+  { players: '스피커 (2~8개)', name: '이름', color: '강조 색상' }
 );
 
 /** Volume percent for a player, or undefined when it reports none. */

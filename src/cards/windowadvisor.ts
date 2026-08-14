@@ -4,7 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 
 export const META = {
   type: 'silk-window-advisor-card',
@@ -46,11 +47,10 @@ const WORTH_IT_DEG = 1;
 
 const EDITOR_TAG = 'silk-window-advisor-card-editor';
 
-// `openings` stays YAML-only: it is a list, and the three sensors are what
-// actually change the verdict.
-registerEditor(
-  EDITOR_TAG,
-  [
+// The three sensors decide the verdict; `openings` is a plain id list, so a
+// multi-entity picker covers it without a row editor.
+registerListEditor(EDITOR_TAG, {
+  schema: [
     {
       name: 'indoor',
       required: true,
@@ -62,15 +62,26 @@ registerEditor(
       selector: { entity: { domain: ['sensor'], device_class: ['temperature'] } },
     },
     { name: 'pm25', selector: { entity: { domain: ['sensor'] } } },
-    { name: 'name', selector: { text: {} } },
+    entityListSelector('openings', ['binary_sensor', 'cover']),
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'name', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  {
-    indoor: 'Indoor temperature',
-    outdoor: 'Outdoor temperature',
-    pm25: 'Outdoor PM2.5 / AQI (optional)',
-    name: 'Name',
-  }
-);
+  labels: {
+    indoor: '실내 온도',
+    outdoor: '실외 온도',
+    pm25: '실외 PM2.5 / AQI (선택)',
+    openings: '창문·문 센서',
+    name: '이름',
+    color: '강조 색상',
+  },
+  listFields: ['openings'],
+});
 
 function readNumber(stateObj?: HassEntity): number | undefined {
   if (!stateObj || isUnavailable(stateObj) || stateObj.state === '') return undefined;

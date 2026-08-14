@@ -13,7 +13,8 @@ import { HomeAssistant, LovelaceCardConfig, SeriesUserConfig, Point } from '../t
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 import { fetchSeries } from '../data';
 import { resampleHold, toPxYs } from '../graph';
 import { formatNumber } from '../format';
@@ -30,6 +31,8 @@ export interface SilkStackedCardConfig extends LovelaceCardConfig {
   hours_to_show?: number;
   /** Unit override for the header total. */
   unit?: string;
+  /** Accent override for band 1 and the header value. */
+  color?: string;
 }
 
 /**
@@ -85,24 +88,35 @@ const r1 = (n: number): string => (Math.round(n * 10) / 10).toString();
 
 const EDITOR_TAG = 'silk-stacked-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// Bands accept `{entity, name, color}` entries; the list editor folds the
+// picker's answer back into them so per-band detail survives an edit.
+registerListEditor(EDITOR_TAG, {
+  schema: [
     {
-      name: 'entities',
+      ...entityListSelector('entities', ['counter', 'input_number', 'number', 'sensor']),
       required: true,
-      selector: { entity: { multiple: true, domain: ['counter', 'input_number', 'number', 'sensor'] } },
     },
     { name: 'name', selector: { text: {} } },
-    { name: 'hours_to_show', selector: { number: { min: 1, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'hours_to_show', selector: { number: { min: 1, max: 168, step: 1, mode: 'box' } } },
+        { name: 'unit', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  {
-    entities: `Entities (up to ${MAX_SERIES})`,
-    name: 'Name',
-    hours_to_show: 'Hours to show',
+  labels: {
+    entities: `엔티티 (최대 ${MAX_SERIES}개)`,
+    name: '이름',
+    hours_to_show: '표시 시간',
+    unit: '단위',
+    color: '강조 색상',
   },
-  { hours_to_show: DEFAULT_HOURS }
-);
+  defaults: { hours_to_show: DEFAULT_HOURS },
+  listFields: ['entities'],
+});
 
 @customElement('silk-stacked-card')
 export class SilkStackedCard extends LitElement {

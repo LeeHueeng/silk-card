@@ -71,15 +71,27 @@ registerEditor(
         select: {
           mode: 'dropdown',
           options: [
-            { value: 'ERROR', label: 'Errors only' },
-            { value: 'WARNING', label: 'Warnings and errors' },
+            { value: 'ERROR', label: '오류만' },
+            { value: 'WARNING', label: '경고와 오류' },
           ],
         },
       },
     },
-    { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { name: 'Name', level: 'Lowest level', limit: 'Rows to show' },
+  {
+    name: '이름',
+    level: '최소 수준',
+    limit: '표시 개수',
+    color: '강조 색상',
+  },
   { level: DEFAULT_LEVEL, limit: DEFAULT_LIMIT }
 );
 

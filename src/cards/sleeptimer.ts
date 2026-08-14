@@ -41,14 +41,22 @@ const STORAGE_PREFIX = 'silk-sleep-timer:';
 
 const EDITOR_TAG = 'silk-sleep-timer-card-editor';
 
+// `presets` stays YAML-only — a list of bare minute numbers has no ha-form
+// selector that answers with numbers.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } },
     { name: 'name', selector: { text: {} } },
     { name: 'action', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { entity: 'Media player', name: 'Name', action: 'Service on expiry (domain.service)' },
+  {
+    entity: '미디어 플레이어',
+    name: '이름',
+    action: '종료 시 서비스 (domain.service)',
+    color: '강조 색상',
+  },
   { action: DEFAULT_ACTION }
 );
 

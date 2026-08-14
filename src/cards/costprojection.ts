@@ -67,16 +67,18 @@ registerEditor(
       schema: [
         { name: 'currency', selector: { text: {} } },
         { name: 'name', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
   {
-    month_energy: 'Month-to-date energy (kWh)',
-    rate: 'Price per kWh',
-    budget: 'Monthly budget',
-    price_entity: 'Price sensor (per kWh)',
-    currency: 'Currency',
-    name: 'Name',
+    month_energy: '이번 달 사용량 (kWh)',
+    rate: 'kWh당 요금',
+    budget: '월 예산',
+    price_entity: '요금 센서 (kWh당)',
+    currency: '통화',
+    name: '이름',
+    color: '강조 색상',
   }
 );
 

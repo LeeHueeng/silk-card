@@ -67,16 +67,24 @@ registerEditor(
       ],
     },
     { name: 'enabled', selector: { entity: { domain: ['input_boolean', 'switch'] } } },
-    { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'name', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    light: 'Light',
-    alarm_entity: 'Alarm time entity',
-    time: 'Fixed time (HH:MM)',
-    duration_minutes: 'Fade minutes',
-    preview_seconds: 'Preview seconds',
-    enabled: 'Enable switch',
-    name: 'Name',
+    light: '조명',
+    alarm_entity: '알람 시각 엔티티',
+    time: '고정 시각 (HH:MM)',
+    duration_minutes: '페이드 시간(분)',
+    preview_seconds: '미리보기 시간(초)',
+    enabled: '사용 스위치',
+    name: '이름',
+    color: '강조 색상',
   },
   { duration_minutes: DEFAULT_DURATION, preview_seconds: DEFAULT_PREVIEW }
 );

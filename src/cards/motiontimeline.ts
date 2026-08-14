@@ -80,12 +80,20 @@ registerEditor(
       },
     },
     { name: 'name', selector: { text: {} } },
-    { name: 'hours_to_show', selector: { number: { min: 1, max: MAX_HOURS, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'hours_to_show', selector: { number: { min: 1, max: MAX_HOURS, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    sensors: 'Motion sensors',
-    name: 'Name',
-    hours_to_show: 'Hours to show',
+    sensors: '동작 센서',
+    name: '이름',
+    hours_to_show: '표시 시간',
+    color: '강조 색상',
   },
   { hours_to_show: DEFAULT_HOURS }
 );

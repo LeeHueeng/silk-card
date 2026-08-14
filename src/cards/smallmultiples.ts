@@ -4,7 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig, Point } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 import { fetchSeries } from '../data';
 import { resampleHold, niceDomain, toPxYs, buildLinePath } from '../graph';
 import { formatNumber } from '../format';
@@ -51,32 +52,35 @@ interface Cell {
 
 const EDITOR_TAG = 'silk-multiples-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
+// Cells accept `{entity, name}` entries; the list editor folds the picker's
+// answer back into them so hand-written cell names survive an edit.
+registerListEditor(EDITOR_TAG, {
+  schema: [
     {
-      name: 'entities',
+      ...entityListSelector('entities', ['sensor', 'number', 'input_number']),
       required: true,
-      selector: { entity: { multiple: true, domain: ['sensor', 'number', 'input_number'] } },
     },
     { name: 'name', selector: { text: {} } },
     {
       name: '',
       type: 'grid',
       schema: [
-        { name: 'hours_to_show', selector: { number: { min: 1, mode: 'box' } } },
-        { name: 'columns', selector: { number: { min: 1, max: 6, mode: 'box' } } },
+        { name: 'hours_to_show', selector: { number: { min: 1, max: 168, step: 1, mode: 'box' } } },
+        { name: 'columns', selector: { number: { min: 1, max: 6, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
-  {
-    entities: 'Entities',
-    name: 'Name',
-    hours_to_show: 'Hours to show',
-    columns: 'Columns (auto when empty)',
+  labels: {
+    entities: `엔티티 (최대 ${MAX_CELLS}개)`,
+    name: '이름',
+    hours_to_show: '표시 시간',
+    columns: '열 수 (비우면 자동)',
+    color: '강조 색상',
   },
-  { hours_to_show: DEFAULT_HOURS }
-);
+  defaults: { hours_to_show: DEFAULT_HOURS },
+  listFields: ['entities'],
+});
 
 @customElement('silk-multiples-card')
 export class SilkMultiplesCard extends LitElement {

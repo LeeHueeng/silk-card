@@ -4,7 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { entityListSelector } from '../shared/list';
 
 export const META = {
   type: 'silk-cert-card',
@@ -19,7 +19,7 @@ export interface CertConfig {
 }
 
 export interface SilkCertCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the certificates this card watches. */
+  /** The certificates this card watches. */
   certs: CertConfig[];
   name?: string;
   /** Days remaining below which a row reads warning. Default 14. */
@@ -41,24 +41,118 @@ const TICK_MS = 900_000;
 
 const EDITOR_TAG = 'silk-cert-card-editor';
 
-// Certificates stay YAML-only — a nested entity+name picker per row would
-// dwarf the card; the editor owns the title and the two thresholds.
-registerEditor(
-  EDITOR_TAG,
-  [
-    { name: 'name', selector: { text: {} } },
-    {
-      name: '',
-      type: 'grid',
-      schema: [
-        { name: 'warn_days', selector: { number: { min: 1, mode: 'box' } } },
-        { name: 'critical_days', selector: { number: { min: 1, mode: 'box' } } },
-      ],
-    },
-  ],
-  { name: 'Name', warn_days: 'Warn under (days)', critical_days: 'Critical under (days)' },
-  { name: 'Certificates', warn_days: DEFAULT_WARN_DAYS, critical_days: DEFAULT_CRITICAL_DAYS }
-);
+const EDITOR_SCHEMA: object[] = [
+  { name: 'name', selector: { text: {} } },
+  entityListSelector('certs', ['sensor']),
+  {
+    name: '',
+    type: 'grid',
+    schema: [
+      { name: 'warn_days', selector: { number: { min: 1, step: 1, mode: 'box' } } },
+      { name: 'critical_days', selector: { number: { min: 1, step: 1, mode: 'box' } } },
+    ],
+  },
+  { name: 'color', selector: { ui_color: {} } },
+];
+
+const EDITOR_LABELS: Record<string, string> = {
+  name: '이름',
+  certs: '인증서 센서',
+  warn_days: '경고 기준 (일)',
+  critical_days: '위험 기준 (일)',
+  color: '강조 색상',
+};
+
+const EDITOR_DEFAULTS: Record<string, unknown> = {
+  name: 'Certificates',
+  warn_days: DEFAULT_WARN_DAYS,
+  critical_days: DEFAULT_CRITICAL_DAYS,
+};
+
+/**
+ * The certificate picker, with its own merge.
+ *
+ * `certs` is a list of `{entity, name?}` objects and `setConfig` insists on
+ * that shape, so the shared list editor cannot drive it: `mergeEntityList`
+ * writes a bare id for any row without extra detail, and the card would reject
+ * its own editor's output. This editor speaks the same multi-entity picker but
+ * always folds the picked ids back into objects, so a row that survives an
+ * edit keeps the `name` its YAML gave it, and keys the schema never mentions
+ * (type, grid_options…) ride through untouched.
+ */
+function registerCertEditor(tag: string): void {
+  if (customElements.get(tag)) return;
+
+  class CertEditor extends LitElement {
+    @property({ attribute: false }) public hass?: HomeAssistant;
+    @state() private _config?: SilkCertCardConfig;
+
+    public setConfig(config: SilkCertCardConfig): void {
+      this._config = config;
+    }
+
+    /** Certificates reach the form as plain ids — that is what a picker speaks. */
+    private _formData(): Record<string, unknown> {
+      const config = (this._config ?? {}) as Record<string, unknown>;
+      const certs = Array.isArray(this._config?.certs) ? this._config!.certs : [];
+      return {
+        ...EDITOR_DEFAULTS,
+        ...config,
+        certs: certs.map((cert) => cert?.entity).filter((id): id is string => typeof id === 'string'),
+      };
+    }
+
+    protected render(): TemplateResult | typeof nothing {
+      if (!this.hass || !this._config) return nothing;
+      return html`
+        <ha-form
+          .hass=${this.hass}
+          .data=${this._formData()}
+          .schema=${EDITOR_SCHEMA}
+          .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
+          @value-changed=${this._valueChanged}
+        ></ha-form>
+      `;
+    }
+
+    private _valueChanged(ev: CustomEvent): void {
+      ev.stopPropagation();
+      const value = (ev.detail?.value ?? {}) as Record<string, unknown>;
+      const previous = (this._config ?? {}) as Record<string, unknown>;
+      const next: Record<string, unknown> = { ...previous };
+
+      for (const [key, raw] of Object.entries(value)) {
+        if (key === 'certs') continue;
+        if (raw === undefined || raw === '') delete next[key];
+        else next[key] = raw;
+      }
+
+      const ids = Array.isArray(value.certs)
+        ? (value.certs as unknown[]).filter((id): id is string => typeof id === 'string')
+        : [];
+      const byId = new Map(
+        (Array.isArray(this._config?.certs) ? this._config!.certs : []).map((cert) => [
+          cert?.entity,
+          cert,
+        ])
+      );
+      // Always objects, never bare ids — `setConfig` accepts nothing else.
+      next.certs = ids.map((id) => byId.get(id) ?? { entity: id });
+
+      this.dispatchEvent(
+        new CustomEvent('config-changed', {
+          detail: { config: next },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+  }
+
+  customElements.define(tag, CertEditor);
+}
+
+registerCertEditor(EDITOR_TAG);
 
 type Tier = 'ok' | 'warn' | 'crit';
 

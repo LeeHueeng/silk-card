@@ -131,17 +131,25 @@ registerEditor(
       type: 'grid',
       schema: [
         { name: 'icon', selector: { icon: {} } },
-        { name: 'invert', selector: { boolean: {} } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
-    { name: 'show_strip', selector: { boolean: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'invert', selector: { boolean: {} } },
+        { name: 'show_strip', selector: { boolean: {} } },
+      ],
+    },
   ],
   {
-    entity: 'Entity',
-    name: 'Name',
-    icon: 'Icon',
-    invert: 'Invert (off is the eventful state)',
-    show_strip: 'Show 24h strip',
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+    invert: '반대로 보기(꺼짐이 사건)',
+    show_strip: '24시간 막대 표시',
   },
   { show_strip: true }
 );

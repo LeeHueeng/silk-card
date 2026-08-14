@@ -65,8 +65,9 @@ registerEditor(
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['media_player'] } } },
     { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { entity: 'Entity', name: 'Name' }
+  { entity: '엔티티', name: '이름', color: '강조 색상' }
 );
 
 const norm = (text: string): string => text.toLowerCase().replace(/\s+/g, ' ').trim();

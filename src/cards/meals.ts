@@ -84,8 +84,8 @@ registerEditor(
             select: {
               mode: 'dropdown',
               options: [
-                { value: 'calendar', label: 'Calendar' },
-                { value: 'todo', label: 'To-do list' },
+                { value: 'calendar', label: '캘린더' },
+                { value: 'todo', label: '할 일 목록' },
               ],
             },
           },
@@ -93,8 +93,20 @@ registerEditor(
         { name: 'days', selector: { number: { min: 1, max: MAX_DAYS, mode: 'box' } } },
       ],
     },
+    // Free-form words, not a fixed set: a multi-select that accepts custom
+    // values is the picker HA gives for a plain list of strings.
+    {
+      name: 'keywords',
+      selector: { select: { multiple: true, custom_value: true, mode: 'dropdown', options: [] } },
+    },
   ],
-  { entity: 'Entity', name: 'Name', source: 'Source', days: 'Days shown' },
+  {
+    entity: '엔티티',
+    name: '이름',
+    source: '데이터 출처',
+    days: '표시 일수',
+    keywords: '검색 키워드(캘린더 전용)',
+  },
   { days: DEFAULT_DAYS }
 );
 

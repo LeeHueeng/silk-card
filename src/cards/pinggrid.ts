@@ -63,7 +63,16 @@ const EDITOR_TAG = 'silk-ping-card-editor';
 
 // `hosts` stays YAML-only (a list of objects); the header label is the one
 // setting worth a picker.
-registerEditor(EDITOR_TAG, [{ name: 'name', selector: { text: {} } }], { name: 'Name' });
+// `hosts` stays YAML-only — a list of {entity, name, url} objects; the header
+// settings are on the form and pass through without touching the list.
+registerEditor(
+  EDITOR_TAG,
+  [
+    { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
+  ],
+  { name: '이름', color: '강조 색상' }
+);
 
 /**
  * Up / down / unknown for a host entity.

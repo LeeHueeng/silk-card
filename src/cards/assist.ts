@@ -16,7 +16,7 @@ export interface SilkAssistCardConfig extends LovelaceCardConfig {
   name?: string;
   /** Conversation agent entity/id; omitted = the default agent. */
   agent_id?: string;
-  /** YAML-only: assist pipeline handed to the voice dialog. */
+  /** Assist pipeline handed to the voice dialog. */
   pipeline_id?: string;
   /** Opening line shown while there is no history. */
   greeting?: string;
@@ -61,9 +61,19 @@ registerEditor(
   [
     { name: 'name', selector: { text: {} } },
     { name: 'agent_id', selector: { entity: { domain: ['conversation'] } } },
+    // Pipeline ids are opaque uuids — the pipeline picker is the only way to
+    // choose one without opening the YAML editor.
+    { name: 'pipeline_id', selector: { assist_pipeline: {} } },
     { name: 'greeting', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { name: 'Name', agent_id: 'Conversation agent', greeting: 'Greeting' },
+  {
+    name: '이름',
+    agent_id: '대화 에이전트',
+    pipeline_id: '음성 파이프라인',
+    greeting: '첫 인사말',
+    color: '강조 색상',
+  },
   { name: DEFAULT_NAME }
 );
 

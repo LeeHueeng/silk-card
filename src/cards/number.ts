@@ -39,9 +39,16 @@ registerEditor(
       selector: { entity: { domain: ['number', 'input_number'] } },
     },
     { name: 'name', selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name', icon: 'Icon' }
+  { entity: '엔티티', name: '이름', icon: '아이콘', color: '강조 색상' }
 );
 
 const SEND_DEBOUNCE_MS = 500;

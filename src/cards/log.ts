@@ -57,16 +57,23 @@ registerEditor(
       name: '',
       type: 'grid',
       schema: [
-        { name: 'hours_to_show', selector: { number: { min: 1, mode: 'box' } } },
-        { name: 'limit', selector: { number: { min: 1, max: 20, mode: 'box' } } },
+        {
+          name: 'hours_to_show',
+          selector: { number: { min: 1, max: 168, step: 1, mode: 'box' } },
+        },
+        { name: 'limit', selector: { number: { min: 1, max: 20, step: 1, mode: 'box' } } },
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
   {
-    entity: 'Entity',
-    name: 'Name',
-    hours_to_show: 'Hours to show',
-    limit: 'Rows',
+    entity: '엔티티',
+    name: '이름',
+    hours_to_show: '표시 시간',
+    limit: '표시 개수',
+    icon: '아이콘',
+    color: '강조 색상',
   },
   { hours_to_show: DEFAULT_HOURS, limit: DEFAULT_LIMIT }
 );

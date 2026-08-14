@@ -146,17 +146,28 @@ registerEditor(
     },
     { name: 'feeder', selector: { entity: { domain: ['button', 'input_button', 'script', 'scene'] } } },
     { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    temperature: 'Temperature',
-    ph: 'pH',
-    tds: 'TDS',
-    water_level: 'Water level',
-    light: 'Light',
-    pump: 'Pump',
-    feeder: 'Feeder',
-    name: 'Name',
-  }
+    temperature: '수온 센서',
+    ph: 'pH 센서',
+    tds: 'TDS 센서',
+    water_level: '수위 센서',
+    light: '조명',
+    pump: '펌프',
+    feeder: '먹이 공급기',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+  },
+  { icon: DEFAULT_ICON }
 );
 
 /**

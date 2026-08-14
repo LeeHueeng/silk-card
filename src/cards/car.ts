@@ -53,8 +53,6 @@ const DEFAULT_DISTANCE_UNIT = 'km';
 
 const EDITOR_TAG = 'silk-car-card-editor';
 
-// `image`, `charging` and `color` stay YAML-only: a photo path and an EV
-// charging flag are one-time setup, and the form stays short enough to scan.
 registerEditor(
   EDITOR_TAG,
   [
@@ -71,15 +69,30 @@ registerEditor(
     },
     { name: 'lock', selector: { entity: { domain: ['lock'] } } },
     { name: 'location', selector: { entity: { domain: ['device_tracker', 'person'] } } },
+    {
+      name: 'charging',
+      selector: { entity: { domain: ['binary_sensor', 'switch', 'sensor'] } },
+    },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'image', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    name: 'Name',
-    icon: 'Icon',
-    fuel: 'Fuel / battery sensor',
-    range: 'Range sensor',
-    odometer: 'Odometer sensor',
-    lock: 'Lock',
-    location: 'Location tracker',
+    name: '이름',
+    icon: '아이콘',
+    fuel: '연료/배터리 센서',
+    range: '주행 가능 거리 센서',
+    odometer: '주행 거리 센서',
+    lock: '잠금',
+    location: '위치 추적기',
+    charging: '충전 중 센서',
+    image: '사진 주소',
+    color: '강조 색상',
   },
   { icon: DEFAULT_ICON }
 );

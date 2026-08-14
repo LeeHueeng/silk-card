@@ -9,9 +9,9 @@ import {
   EntityListConfig,
   normalizeEntityList,
   entityIds,
-  hasItemDetail,
   entityListSelector,
 } from '../shared/list';
+import { registerListEditor } from '../shared/listeditor';
 
 export const META = {
   type: 'silk-counter-card',
@@ -47,8 +47,15 @@ const LABELS: Record<string, string> = {
   state: '상태 값',
 };
 
-/** Stable arrays: a new schema identity on every render would rebuild the form. */
-const SCHEMA_TAIL = [
+/**
+ * One schema, the picker always on screen. Lists reach the form as bare ids
+ * and the picked ids are folded back into the stored list on change, so a
+ * hand-written `{entity, name, icon}` entry keeps its detail as long as it
+ * survives the edit — and `type`, `grid_options` and friends pass through
+ * because the merge starts from the stored config.
+ */
+const EDITOR_SCHEMA = [
+  entityListSelector('entities'),
   { name: 'name', required: true, selector: { text: {} } },
   { name: 'icon', selector: { icon: {} } },
   {
@@ -65,65 +72,12 @@ const SCHEMA_TAIL = [
   },
   { name: 'state', selector: { text: {} } },
 ];
-const SCHEMA_FULL = [entityListSelector('entities'), ...SCHEMA_TAIL];
 
-/**
- * Hand-rolled rather than `registerEditor` because the schema depends on the
- * config: a list carrying per-item name/icon/color cannot survive a round trip
- * through the picker, so `entities` drops out of the schema entirely and ha-form
- * leaves the key it never rendered exactly as it was.
- */
-class SilkCounterCardEditor extends LitElement {
-  @property({ attribute: false }) public hass?: HomeAssistant;
-
-  @state() private _config?: SilkCounterCardConfig;
-
-  public setConfig(config: SilkCounterCardConfig): void {
-    this._config = config;
-  }
-
-  protected render(): TemplateResult | typeof nothing {
-    const config = this._config;
-    if (!this.hass || !config) return nothing;
-    const detail = hasItemDetail(config.entities);
-    return html`
-      <ha-form
-        .hass=${this.hass}
-        .data=${config}
-        .schema=${detail ? SCHEMA_TAIL : SCHEMA_FULL}
-        .computeLabel=${(field: { name: string }) => LABELS[field.name] ?? field.name}
-        @value-changed=${this._valueChanged}
-      ></ha-form>
-      ${detail
-        ? html`<div class="note">
-            엔티티마다 이름·아이콘이 지정되어 있어 목록은 YAML에서만 편집할 수 있습니다.
-          </div>`
-        : nothing}
-    `;
-  }
-
-  private _valueChanged(ev: CustomEvent): void {
-    ev.stopPropagation();
-    this.dispatchEvent(
-      new CustomEvent('config-changed', {
-        detail: { config: ev.detail.value },
-        bubbles: true,
-        composed: true,
-      })
-    );
-  }
-
-  static styles = css`
-    .note {
-      margin-top: 8px;
-      font-size: 12px;
-      line-height: 1.4;
-      color: var(--secondary-text-color);
-    }
-  `;
-}
-
-if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkCounterCardEditor);
+registerListEditor(EDITOR_TAG, {
+  schema: EDITOR_SCHEMA,
+  labels: LABELS,
+  listFields: ['entities'],
+});
 
 @customElement('silk-counter-card')
 export class SilkCounterCard extends LitElement {

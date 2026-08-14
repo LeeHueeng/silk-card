@@ -121,11 +121,21 @@ registerEditor(
       type: 'grid',
       schema: [
         { name: 'icon', selector: { icon: {} } },
-        { name: 'days', selector: { number: { min: MIN_DAYS, max: MAX_DAYS, mode: 'box' } } },
+        {
+          name: 'days',
+          selector: { number: { min: MIN_DAYS, max: MAX_DAYS, step: 1, mode: 'box' } },
+        },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
-  { entity: 'Entity', name: 'Name', icon: 'Icon', days: 'Days to show' },
+  {
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    days: '표시 일수',
+    color: '강조 색상',
+  },
   { days: DEFAULT_DAYS }
 );
 

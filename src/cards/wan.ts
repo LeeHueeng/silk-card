@@ -84,12 +84,14 @@ registerEditor(
     { name: 'name', selector: { text: {} } },
     { name: 'ip', selector: { entity: { domain: ['sensor', 'input_text'] } } },
     { name: 'isp', selector: { entity: { domain: ['sensor', 'input_text'] } } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    entity: 'Connectivity entity',
-    name: 'Name',
-    ip: 'Public IP entity',
-    isp: 'ISP entity',
+    entity: '연결 상태 엔티티',
+    name: '이름',
+    ip: '공인 IP 엔티티',
+    isp: 'ISP 엔티티',
+    color: '강조 색상',
   }
 );
 

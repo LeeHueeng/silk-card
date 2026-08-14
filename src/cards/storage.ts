@@ -47,13 +47,23 @@ registerEditor(
       ],
     },
     { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    soc: 'Charge (%)',
-    power: 'Battery power (W)',
-    capacity: 'Capacity (kWh)',
-    reserve: 'Reserve floor (%)',
-    name: 'Name',
+    soc: '충전량(%)',
+    power: '배터리 전력(W)',
+    capacity: '용량(kWh)',
+    reserve: '예비 하한(%)',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
   }
 );
 

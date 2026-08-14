@@ -4,7 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, moreInfo, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 
 export const META = {
   type: 'silk-zones-card',
@@ -57,17 +58,19 @@ const EDITOR_TAG = 'silk-zones-card-editor';
 
 // Zones stay YAML-only — they are objects with an optional icon, and the
 // default (auto-discovering every zone) is already the right answer for most.
-registerEditor(
-  EDITOR_TAG,
-  [
+registerListEditor(EDITOR_TAG, {
+  schema: [
     { name: 'name', selector: { text: {} } },
-    {
-      name: 'people',
-      selector: { entity: { multiple: true, domain: ['person', 'device_tracker'] } },
-    },
+    entityListSelector('people', ['person', 'device_tracker']),
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { name: 'Name', people: 'People (empty = every person)' }
-);
+  labels: {
+    name: '이름',
+    people: '표시할 사람 (비우면 전체)',
+    color: '강조 색상',
+  },
+  listFields: ['people'],
+});
 
 /** `front_garden` → `Front garden`, for zones with no friendly name. */
 function prettify(slug: string): string {

@@ -354,14 +354,22 @@ function wifiPayload(wifi: SilkQrWifi): string {
 
 const EDITOR_TAG = 'silk-qr-card-editor';
 
+// `wifi` stays YAML-only: it is a nested {ssid, password, encryption, hidden}
+// object, which needs a sub-form rather than a flat schema row.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', selector: { text: {} } },
     { name: 'text', selector: { text: {} } },
     { name: 'entity', selector: { entity: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { name: 'Caption', text: 'Text', entity: 'Entity (encodes its state)' }
+  {
+    name: '설명',
+    text: '인코딩할 텍스트',
+    entity: '엔터티 (상태를 인코딩)',
+    color: '강조 색상',
+  }
 );
 
 @customElement('silk-qr-card')

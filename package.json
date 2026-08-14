@@ -1,6 +1,6 @@
 {
   "name": "silk-card",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Buttery-smooth card suite for Home Assistant — 192 cards, visual editors, one design language",
   "type": "module",
   "license": "MIT",

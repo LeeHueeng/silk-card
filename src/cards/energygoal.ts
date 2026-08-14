@@ -32,10 +32,16 @@ registerEditor(
       required: true,
       selector: { entity: { domain: ['sensor'], device_class: ['energy', 'gas', 'water'] } },
     },
-    { name: 'goal', required: true, selector: { number: { min: 1, mode: 'box' } } },
+    { name: 'goal', required: true, selector: { number: { min: 1, step: 1, mode: 'box' } } },
     { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { entity: 'Month-to-date total', goal: 'Monthly budget', name: 'Name' },
+  {
+    entity: '이번 달 누적 사용량',
+    goal: '월 목표량',
+    name: '이름',
+    color: '강조 색상',
+  },
   { goal: 300 }
 );
 

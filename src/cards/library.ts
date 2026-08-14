@@ -56,9 +56,25 @@ registerEditor(
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['sensor'] } } },
     { name: 'name', selector: { text: {} } },
-    { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
+    { name: 'tap_service', selector: { text: {} } },
+    { name: 'tap_data', selector: { object: {} } },
   ],
-  { entity: 'Entity', name: 'Name', limit: 'Posters to show' },
+  {
+    entity: '엔티티',
+    name: '이름',
+    limit: '표시 개수',
+    color: '강조 색상',
+    tap_service: '탭 서비스 (예: media_player.play_media)',
+    tap_data: '서비스 데이터 ({id}, {title}, {year} 사용 가능)',
+  },
   { limit: DEFAULT_LIMIT }
 );
 

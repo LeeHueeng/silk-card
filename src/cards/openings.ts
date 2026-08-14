@@ -4,14 +4,13 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isActive, isUnavailable, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
 import {
   EntityItem,
   EntityListConfig,
   entityListSelector,
-  hasItemDetail,
   normalizeEntityList,
 } from '../shared/list';
+import { registerListEditor } from '../shared/listeditor';
 
 export const META = {
   type: 'silk-openings-card',
@@ -94,73 +93,29 @@ function shortSince(ms: number): string {
 }
 
 const EDITOR_TAG = 'silk-openings-card-editor';
-const PICKER_EDITOR_TAG = 'silk-openings-card-picker-editor';
-const DETAIL_EDITOR_TAG = 'silk-openings-card-detail-editor';
-
-/** Everything except the entity list — shared by both editor variants. */
-const EDITOR_REST = [
-  { name: 'name', selector: { text: {} } },
-  { name: 'show_closed', selector: { boolean: {} } },
-  { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
-];
-
-const EDITOR_LABELS = {
-  entities: '문·창문 센서',
-  name: '이름',
-  show_closed: '닫힌 것도 표시',
-  limit: '표시 개수',
-};
-
-const EDITOR_DEFAULTS = { name: DEFAULT_NAME, show_closed: false, limit: DEFAULT_LIMIT };
-
-// Empty list = auto-discovery, so the picker doubles as "narrow it down".
-registerEditor(
-  PICKER_EDITOR_TAG,
-  [entityListSelector('entities', ['binary_sensor', 'cover']), ...EDITOR_REST],
-  EDITOR_LABELS,
-  EDITOR_DEFAULTS
-);
-// Same form minus the picker: a list ha-form never sees is a list it cannot flatten.
-registerEditor(DETAIL_EDITOR_TAG, EDITOR_REST, EDITOR_LABELS, EDITOR_DEFAULTS);
-
-interface EditorElement extends HTMLElement {
-  hass?: HomeAssistant;
-  setConfig(config: SilkOpeningsCardConfig): void;
-}
 
 /**
- * Editor front door. Per-item name/icon/color cannot be expressed by a
- * multi-entity picker, so a hand-written list routes to the picker-less form
- * and survives the round trip untouched; everything else gets the picker.
+ * Empty list = auto-discovery, so the picker doubles as "narrow it down". It
+ * stays on screen for a hand-written list too: the ids it returns are folded
+ * back into the stored entries, so every row that survives keeps its name,
+ * icon and color.
  */
-if (!customElements.get(EDITOR_TAG)) {
-  customElements.define(
-    EDITOR_TAG,
-    class SilkOpeningsCardEditor extends HTMLElement implements EditorElement {
-      private _hass?: HomeAssistant;
-      private _inner?: EditorElement;
-
-      public get hass(): HomeAssistant | undefined {
-        return this._hass;
-      }
-
-      public set hass(hass: HomeAssistant | undefined) {
-        this._hass = hass;
-        if (this._inner) this._inner.hass = hass;
-      }
-
-      public setConfig(config: SilkOpeningsCardConfig): void {
-        const tag = hasItemDetail(config.entities) ? DETAIL_EDITOR_TAG : PICKER_EDITOR_TAG;
-        if (!this._inner || this._inner.localName !== tag) {
-          this._inner = document.createElement(tag) as EditorElement;
-          this.replaceChildren(this._inner);
-        }
-        this._inner.setConfig(config);
-        this._inner.hass = this._hass;
-      }
-    }
-  );
-}
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    entityListSelector('entities', ['binary_sensor', 'cover']),
+    { name: 'name', selector: { text: {} } },
+    { name: 'show_closed', selector: { boolean: {} } },
+    { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
+  ],
+  labels: {
+    entities: '문·창문 센서',
+    name: '이름',
+    show_closed: '닫힌 것도 표시',
+    limit: '표시 개수',
+  },
+  defaults: { name: DEFAULT_NAME, show_closed: false, limit: DEFAULT_LIMIT },
+  listFields: ['entities'],
+});
 
 /**
  * The "did I leave something open?" card: a one-glance verdict in the header,

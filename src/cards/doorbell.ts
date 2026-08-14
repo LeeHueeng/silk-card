@@ -33,7 +33,7 @@ export interface SilkDoorbellCardConfig extends LovelaceCardConfig {
   /** How long a ring counts as recent, in minutes (default 5). */
   recent_minutes?: number;
   name?: string;
-  /** Accent override (YAML only). */
+  /** Accent override. */
   color?: string;
 }
 
@@ -64,16 +64,27 @@ registerEditor(
         },
       ],
     },
-    { name: 'recent_minutes', selector: { number: { min: 1, max: 120, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        {
+          name: 'recent_minutes',
+          selector: { number: { min: 1, max: 120, step: 1, mode: 'box' } },
+        },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    camera: 'Camera',
-    name: 'Name',
-    ring: 'Ring sensor',
-    unlock: 'Lock',
-    light: 'Porch light',
-    chime: 'Chime',
-    recent_minutes: 'Recent window (minutes)',
+    camera: '카메라',
+    name: '이름',
+    ring: '초인종 센서',
+    unlock: '잠금 장치',
+    light: '현관 조명',
+    chime: '차임/사이렌',
+    recent_minutes: '최근으로 볼 시간 (분)',
+    color: '강조 색상',
   },
   { recent_minutes: DEFAULT_RECENT_MIN }
 );

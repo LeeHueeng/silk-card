@@ -4,8 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
-import { EntityItem, entityListSelector, hasItemDetail } from '../shared/list';
+import { registerListEditor } from '../shared/listeditor';
+import { EntityItem, entityListSelector } from '../shared/list';
 
 export const META = {
   type: 'silk-device-card',
@@ -45,21 +45,6 @@ const WARN_THRESHOLD = 50;
 /** Re-render cadence so relative "last seen" stamps never go stale. */
 const CLOCK_TICK_MS = 30_000;
 
-/**
- * True when a device carries something a battery-sensor picker cannot express,
- * so the editor must leave the list alone instead of flattening it.
- */
-function hasDeviceDetail(devices?: DeviceConfigEntry[]): boolean {
-  if (!Array.isArray(devices)) return false;
-  return devices.some((device) => {
-    if (typeof device === 'string') return false;
-    // A {name, battery, …} row has no `entity` key for hasItemDetail to read,
-    // so anything that is not an {entity, …} item counts as detail outright.
-    if (!device || typeof (device as EntityItem).entity !== 'string') return true;
-    return hasItemDetail([device as EntityItem]);
-  });
-}
-
 /** Friendly name with the redundant "Battery"/"Battery level" suffix trimmed. */
 function batteryName(stateObj: HassEntity | undefined, entityId: string): string {
   const raw = (stateObj?.attributes.friendly_name as string | undefined) ?? entityId;
@@ -67,65 +52,34 @@ function batteryName(stateObj: HassEntity | undefined, entityId: string): string
 }
 
 const EDITOR_TAG = 'silk-device-card-editor';
-/** With the battery-sensor picker — used for a plain list of ids. */
-const EDITOR_PICKER_TAG = 'silk-device-card-editor-picker';
-/** Header name only — used when `devices` are hand-written rows. */
-const EDITOR_PLAIN_TAG = 'silk-device-card-editor-plain';
 
 const EDITOR_LABELS: Record<string, string> = {
   devices: '배터리 센서',
   name: '이름',
 };
 
-registerEditor(
-  EDITOR_PICKER_TAG,
-  [
-    { name: 'name', selector: { text: {} } },
-    entityListSelector('devices', ['sensor'], ['battery']),
-  ],
-  EDITOR_LABELS
-);
-// A picker cannot express {name, battery, signal, last_seen}, so the field is
-// left out entirely for those configs — ha-form only writes back what it was
-// given, which is exactly what keeps a hand-written fleet intact.
-registerEditor(EDITOR_PLAIN_TAG, [{ name: 'name', selector: { text: {} } }], EDITOR_LABELS);
-
-/** The inner editors registered above, as far as the wrapper cares. */
-interface InnerEditor extends HTMLElement {
-  hass?: HomeAssistant;
-  setConfig(config: LovelaceCardConfig): void;
-}
-
 /**
- * Hands the config to whichever editor can express it: the picker form for a
- * plain list of battery sensors, the name-only form as soon as a device row
- * carries detail no picker can hold. `config-changed` bubbles straight through.
+ * One editor, battery picker always present. The picker answers with bare ids
+ * and they are folded back into the stored list, so a device that survives the
+ * edit keeps the `name` its YAML gave it and `type` / `grid_options` ride
+ * through untouched.
+ *
+ * Caveat, and it is a real one: the full `{name, battery, signal, last_seen}`
+ * row has no `entity` key, so the picker cannot show it and the merge cannot
+ * keep it — a fleet written that way reaches the form as an empty list, and
+ * saving from the visual editor drops it. Those fleets must be edited in YAML
+ * until `mergeEntityList` learns to carry entries that name no single entity.
  */
-class SilkDeviceCardEditor extends HTMLElement {
-  private _hass?: HomeAssistant;
-  private _inner?: InnerEditor;
+const EDITOR_SCHEMA: object[] = [
+  { name: 'name', selector: { text: {} } },
+  entityListSelector('devices', ['sensor'], ['battery']),
+];
 
-  public set hass(hass: HomeAssistant | undefined) {
-    this._hass = hass;
-    if (this._inner) this._inner.hass = hass;
-  }
-
-  public get hass(): HomeAssistant | undefined {
-    return this._hass;
-  }
-
-  public setConfig(config: SilkDeviceCardConfig): void {
-    const tag = hasDeviceDetail(config?.devices) ? EDITOR_PLAIN_TAG : EDITOR_PICKER_TAG;
-    if (this._inner?.localName !== tag) {
-      this._inner = document.createElement(tag) as InnerEditor;
-      this.replaceChildren(this._inner);
-    }
-    if (this._hass) this._inner.hass = this._hass;
-    this._inner.setConfig(config);
-  }
-}
-
-if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkDeviceCardEditor);
+registerListEditor(EDITOR_TAG, {
+  schema: EDITOR_SCHEMA,
+  labels: EDITOR_LABELS,
+  listFields: ['devices'],
+});
 
 /** '<60s → just now, <1h → Nm ago, <24h → Hh ago, else Dd ago'; bad input → null. */
 function relativeTime(ms: number): string | null {

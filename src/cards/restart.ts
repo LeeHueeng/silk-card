@@ -68,8 +68,16 @@ function iconFor(service: string): string {
 const EDITOR_TAG = 'silk-restart-card-editor';
 
 // `actions` stays YAML-only (a list of objects, one of them destructive);
-// the editor covers the header text.
-registerEditor(EDITOR_TAG, [{ name: 'name', selector: { text: {} } }], { name: 'Name' });
+// the editor covers the header text and the accent.
+registerEditor(
+  EDITOR_TAG,
+  [
+    { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
+  ],
+  { name: '이름', color: '강조 색상' },
+  { name: DEFAULT_NAME }
+);
 
 /**
  * The maintenance buttons you would otherwise hunt for in Developer Tools —

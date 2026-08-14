@@ -110,14 +110,16 @@ registerEditor(
       selector: { entity: { domain: ['sensor'], device_class: ['temperature'] } },
     },
     { name: 'name', selector: { text: {} } },
+    { name: 'icon', selector: { icon: {} } },
     { name: 'insulation', selector: { number: { min: 0, max: 1, step: 0.05, mode: 'slider' } } },
   ],
   {
-    indoor_temp: 'Indoor temperature',
-    indoor_humidity: 'Indoor humidity',
-    outdoor_temp: 'Outdoor temperature',
-    name: 'Name',
-    insulation: 'Insulation factor (1 = well insulated)',
+    indoor_temp: '실내 온도',
+    indoor_humidity: '실내 습도',
+    outdoor_temp: '실외 온도',
+    name: '이름',
+    icon: '아이콘',
+    insulation: '단열 계수 (1 = 단열 우수)',
   },
   { insulation: INSULATION_DEFAULT }
 );

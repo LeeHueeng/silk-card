@@ -4,12 +4,11 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
 import {
   EntityItem,
   entityIds,
   entityListSelector,
-  hasItemDetail,
   normalizeEntityList,
 } from '../shared/list';
 
@@ -128,13 +127,15 @@ const REMAINDER_EPSILON = 0.005;
 const SYMBOL_FIRST = /^[$€£¥₩]/;
 
 const EDITOR_TAG = 'silk-bill-card-editor';
-/** With the device picker — used when `devices` is a plain list of ids. */
-const EDITOR_PICKER_TAG = 'silk-bill-card-editor-picker';
-/** Scalars only — used when `devices` carries per-row name/icon detail. */
-const EDITOR_PLAIN_TAG = 'silk-bill-card-editor-plain';
 
-/** Everything except the device list; shared by both editor variants. */
-const SCALAR_SCHEMA: object[] = [
+/**
+ * The device picker stays on screen for every config. A picked list comes back
+ * as bare ids, and the editor folds them into the stored list — so a row that
+ * survives keeps the name and icon its YAML gave it, and only the rows the user
+ * actually removed go away.
+ */
+const EDITOR_SCHEMA: object[] = [
+  entityListSelector('devices', ['sensor'], ['energy']),
   { name: 'name', selector: { text: {} } },
   {
     name: '',
@@ -192,53 +193,12 @@ const EDITOR_DEFAULTS: Record<string, unknown> = {
   currency: DEFAULT_CURRENCY,
 };
 
-registerEditor(
-  EDITOR_PICKER_TAG,
-  [entityListSelector('devices', ['sensor'], ['energy']), ...SCALAR_SCHEMA],
-  EDITOR_LABELS,
-  EDITOR_DEFAULTS
-);
-// No `devices` field at all: a multi-entity picker cannot carry per-row name
-// and icon, and ha-form only ever writes back the fields it was given — so
-// leaving it out is what keeps a hand-written list intact.
-registerEditor(EDITOR_PLAIN_TAG, SCALAR_SCHEMA, EDITOR_LABELS, EDITOR_DEFAULTS);
-
-/** The inner editors registered above, as far as the wrapper cares. */
-interface InnerEditor extends HTMLElement {
-  hass?: HomeAssistant;
-  setConfig(config: LovelaceCardConfig): void;
-}
-
-/**
- * Hands the config to whichever editor can express it: the picker form for a
- * plain list of sensor ids, the scalars-only form when the list carries
- * per-row detail. `config-changed` bubbles up through the light DOM untouched.
- */
-class SilkBillCardEditor extends HTMLElement {
-  private _hass?: HomeAssistant;
-  private _inner?: InnerEditor;
-
-  public set hass(hass: HomeAssistant | undefined) {
-    this._hass = hass;
-    if (this._inner) this._inner.hass = hass;
-  }
-
-  public get hass(): HomeAssistant | undefined {
-    return this._hass;
-  }
-
-  public setConfig(config: SilkBillCardConfig): void {
-    const tag = hasItemDetail(config?.devices) ? EDITOR_PLAIN_TAG : EDITOR_PICKER_TAG;
-    if (this._inner?.localName !== tag) {
-      this._inner = document.createElement(tag) as InnerEditor;
-      this.replaceChildren(this._inner);
-    }
-    if (this._hass) this._inner.hass = this._hass;
-    this._inner.setConfig(config);
-  }
-}
-
-if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkBillCardEditor);
+registerListEditor(EDITOR_TAG, {
+  schema: EDITOR_SCHEMA,
+  labels: EDITOR_LABELS,
+  defaults: EDITOR_DEFAULTS,
+  listFields: ['devices'],
+});
 
 /** Local midnight the window opens at — DST-proof calendar arithmetic. */
 function windowStart(period: BillPeriod, now: Date): Date {

@@ -83,13 +83,15 @@ registerEditor(
       schema: [
         { name: 'currency', selector: { text: {} } },
         { name: 'unit', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
   {
-    name: 'Name',
-    currency: 'Currency (e.g. €)',
-    unit: 'Volume unit (e.g. L)',
+    name: '이름',
+    currency: '통화 기호 (예: €)',
+    unit: '용량 단위 (예: L)',
+    color: '강조 색상',
   }
 );
 

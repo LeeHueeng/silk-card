@@ -119,21 +119,28 @@ registerEditor(
       selector: { entity: { domain: ['sensor', 'number', 'input_number'] } },
     },
     { name: 'name', selector: { text: {} } },
+    { name: 'icon', selector: { icon: {} } },
     {
       name: '',
       type: 'grid',
       schema: [
-        { name: 'hours_to_show', selector: { number: { min: 1, max: MAX_HOURS, mode: 'box' } } },
+        {
+          name: 'hours_to_show',
+          selector: { number: { min: 1, max: MAX_HOURS, step: 1, mode: 'box' } },
+        },
         { name: 'trend', selector: { boolean: {} } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
   {
-    entity: 'X entity',
-    entity2: 'Y entity',
-    name: 'Name',
-    hours_to_show: 'Hours to show',
-    trend: 'Show trend line',
+    entity: 'X축 엔터티',
+    entity2: 'Y축 엔터티',
+    name: '이름',
+    icon: '아이콘',
+    hours_to_show: '표시 시간',
+    trend: '추세선 표시',
+    color: '강조 색상',
   },
   { hours_to_show: DEFAULT_HOURS, trend: false }
 );

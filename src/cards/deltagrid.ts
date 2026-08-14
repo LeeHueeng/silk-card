@@ -4,7 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -73,14 +74,11 @@ const HOURLY_SLACK_MS = 90_000;
 
 const EDITOR_TAG = 'silk-delta-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
-    {
-      name: 'entities',
-      required: true,
-      selector: { entity: { multiple: true, domain: ['sensor'] } },
-    },
+// `entities` accepts hand-written `{entity, name}` cells, so the list editor
+// folds the picker's answer back into the stored list instead of flattening it.
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    { ...entityListSelector('entities', ['sensor']), required: true },
     { name: 'name', selector: { text: {} } },
     {
       name: 'metric',
@@ -88,21 +86,30 @@ registerEditor(
         select: {
           mode: 'dropdown',
           options: [
-            { value: 'change', label: 'Daily total' },
-            { value: 'mean', label: 'Daily average' },
+            { value: 'change', label: '하루 합계' },
+            { value: 'mean', label: '하루 평균' },
           ],
         },
       },
     },
-    { name: 'invert', selector: { boolean: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'color', selector: { ui_color: {} } },
+        { name: 'invert', selector: { boolean: {} } },
+      ],
+    },
   ],
-  {
-    entities: 'Entities',
-    name: 'Name',
-    metric: 'Metric (auto when empty)',
-    invert: 'More is better',
-  }
-);
+  labels: {
+    entities: '엔티티 목록',
+    name: '이름',
+    metric: '지표 (비우면 자동)',
+    color: '강조 색상',
+    invert: '늘어날수록 좋음',
+  },
+  listFields: ['entities'],
+});
 
 @customElement('silk-delta-card')
 export class SilkDeltaCard extends LitElement {

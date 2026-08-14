@@ -16,9 +16,9 @@ import {
   EntityListConfig,
   entityIds,
   entityListSelector,
-  hasItemDetail,
   normalizeEntityList,
 } from '../shared/list';
+import { registerListEditor } from '../shared/listeditor';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -71,66 +71,29 @@ const EDITOR_LABELS: Record<string, string> = {
   color: '강조 색상',
 };
 
-const YAML_ONLY_NOTE = 'YAML에 항목별 설정이 있어 편집기에서 건드리지 않습니다';
-
 /**
- * The schema depends on the config, so this card owns its editor element
- * instead of using the fixed-schema `registerEditor` helper: a list that
- * carries hand-written per-item detail gets a read-only note instead of a
- * picker, and ha-form passes untouched every key its schema never mentions.
+ * One schema, pickers always on screen. A list carrying hand-written
+ * `{entity, name, icon}` entries still reaches the form as bare ids, and the
+ * editor folds the picked ids back into the stored list on change — so editing
+ * the room from the UI keeps every per-item label and glyph, and keys the
+ * schema never mentions (type, grid_options, tap_action…) pass through.
  */
-function roomSchema(config: RoomCardConfig): Record<string, unknown>[] {
-  const listField = (name: string, domains?: string[]): Record<string, unknown> =>
-    hasItemDetail(config[name] as EntityListConfig)
-      ? { name, type: 'constant', value: YAML_ONLY_NOTE }
-      : entityListSelector(name, domains);
+const EDITOR_SCHEMA = [
+  { name: 'name', required: true, selector: { text: {} } },
+  { name: 'icon', selector: { icon: {} } },
+  entityListSelector('sensors', ['sensor']),
+  entityListSelector('toggles', TOGGLE_DOMAINS),
+  entityListSelector('count_active'),
+  { name: 'navigation_path', selector: { text: {} } },
+  { name: 'color', selector: { text: {} } },
+];
 
-  return [
-    { name: 'name', required: true, selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
-    listField('sensors', ['sensor']),
-    listField('toggles', TOGGLE_DOMAINS),
-    listField('count_active'),
-    { name: 'navigation_path', selector: { text: {} } },
-    { name: 'color', selector: { text: {} } },
-  ];
-}
-
-class SilkRoomCardEditor extends LitElement {
-  @property({ attribute: false }) public hass?: HomeAssistant;
-
-  @state() private _config?: RoomCardConfig;
-
-  public setConfig(config: RoomCardConfig): void {
-    this._config = config;
-  }
-
-  protected render(): TemplateResult | typeof nothing {
-    if (!this.hass || !this._config) return nothing;
-    return html`
-      <ha-form
-        .hass=${this.hass}
-        .data=${{ icon: DEFAULT_ICON, ...this._config }}
-        .schema=${roomSchema(this._config)}
-        .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
-        @value-changed=${this._valueChanged}
-      ></ha-form>
-    `;
-  }
-
-  private _valueChanged(ev: CustomEvent): void {
-    ev.stopPropagation();
-    this.dispatchEvent(
-      new CustomEvent('config-changed', {
-        detail: { config: ev.detail.value },
-        bubbles: true,
-        composed: true,
-      })
-    );
-  }
-}
-
-if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkRoomCardEditor);
+registerListEditor(EDITOR_TAG, {
+  schema: EDITOR_SCHEMA,
+  labels: EDITOR_LABELS,
+  defaults: { icon: DEFAULT_ICON },
+  listFields: ['sensors', 'toggles', 'count_active'],
+});
 
 /** °C/°F condense to a bare degree sign; anything else renders as-is. */
 function condenseUnit(unit: unknown): string {

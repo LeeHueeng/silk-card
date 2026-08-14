@@ -32,10 +32,23 @@ registerEditor(
       selector: { entity: { domain: ['sensor', 'number', 'input_number'] } },
     },
     { name: 'name', selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
     { name: 'remaining', selector: { entity: { domain: ['sensor'] } } },
   ],
-  { entity: 'Entity', name: 'Name', icon: 'Icon', remaining: 'Time-remaining entity' }
+  {
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+    remaining: '남은 시간 센서',
+  }
 );
 
 const HOUR_UNITS = new Set(['h', 'hr', 'hrs', 'hour', 'hours']);

@@ -54,15 +54,22 @@ const MIN_FILL_PCT = 3;
 
 const EDITOR_TAG = 'silk-room-rank-card-editor';
 
-// `rooms` stays YAML-only (a list of objects); the editor covers the two
-// settings that change how the ranking reads.
+// `rooms` is a list of {name, temperature, humidity} objects — two entity ids
+// per row, which no single picker can express. It waits for the row editor;
+// the form covers the two settings that change how the ranking reads.
 registerEditor(
   EDITOR_TAG,
   [
-    { name: 'name', selector: { text: {} } },
-    { name: 'target', selector: { number: { min: 5, max: 35, step: 0.5, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'name', selector: { text: {} } },
+        { name: 'target', selector: { number: { min: 5, max: 35, step: 0.5, mode: 'box' } } },
+      ],
+    },
   ],
-  { name: 'Name', target: 'Comfort target' },
+  { name: '이름', target: '쾌적 기준 온도' },
   { name: DEFAULT_NAME, target: DEFAULT_TARGET }
 );
 

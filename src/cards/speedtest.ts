@@ -26,7 +26,7 @@ export interface SilkSpeedtestCardConfig extends LovelaceCardConfig {
   run?: string;
   name?: string;
   hours_to_show?: number;
-  /** Accent override (YAML only) for the download column and the sparkline. */
+  /** Accent override for the download column and the sparkline. */
   color?: string;
   /** Upload column color; the suite's restrained amber by default. */
   upload_color?: string;
@@ -54,15 +54,27 @@ registerEditor(
     { name: 'ping', selector: { entity: { domain: ['sensor'] } } },
     { name: 'run', selector: { entity: { domain: ['button', 'input_button', 'script', 'switch'] } } },
     { name: 'name', selector: { text: {} } },
+    { name: 'hours_to_show', selector: { number: { min: 1, max: 8760, step: 1, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'color', selector: { ui_color: {} } },
+        { name: 'upload_color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    download: 'Download entity',
-    upload: 'Upload entity',
-    ping: 'Ping entity',
-    run: 'Run-test entity',
-    name: 'Name',
+    download: '다운로드 엔티티',
+    upload: '업로드 엔티티',
+    ping: '핑 엔티티',
+    run: '테스트 실행 엔티티',
+    name: '이름',
+    hours_to_show: '표시 시간',
+    color: '강조 색상',
+    upload_color: '업로드 색상',
   },
-  { name: DEFAULT_NAME }
+  { name: DEFAULT_NAME, hours_to_show: DEFAULT_HOURS }
 );
 
 /** Numeric state, NaN when the entity is missing/unavailable/non-numeric. */

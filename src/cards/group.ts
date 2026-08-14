@@ -12,7 +12,8 @@ import {
   stateText,
 } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -68,32 +69,42 @@ const OPTIMISTIC_TIMEOUT_MS = 2000;
 
 const EDITOR_TAG = 'silk-group-card-editor';
 
-// The picker writes bare ids; rows that carry their own name/icon/secondary are
-// YAML territory and are left alone until the list itself is edited.
-registerEditor(
-  EDITOR_TAG,
-  [
-    { name: 'title', selector: { text: {} } },
+// The picker speaks bare ids, and the list editor folds them back into the
+// stored list — so rows carrying their own name/icon/secondary survive an edit.
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'title', selector: { text: {} } },
+        { name: 'name', selector: { text: {} } },
+      ],
+    },
     {
       name: '',
       type: 'grid',
       schema: [
         { name: 'icon', selector: { icon: {} } },
-        { name: 'columns', selector: { number: { min: 1, max: 2, mode: 'box' } } },
+        { name: 'columns', selector: { number: { min: 1, max: 2, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
-    { name: 'entities', required: true, selector: { entity: { multiple: true } } },
+    entityListSelector('entities'),
     { name: 'toggles', selector: { boolean: {} } },
   ],
-  {
-    title: 'Title',
-    icon: 'Icon',
-    columns: 'Columns (1–2)',
-    entities: 'Entities',
-    toggles: 'Switches on toggleable rows',
+  labels: {
+    title: '제목',
+    name: '이름 (제목 대신)',
+    icon: '아이콘',
+    columns: '열 수 (1–2)',
+    color: '강조 색상',
+    entities: '엔티티',
+    toggles: '전환 가능한 행에 스위치 표시',
   },
-  { columns: 1, toggles: true }
-);
+  defaults: { columns: 1, toggles: true },
+  listFields: ['entities'],
+});
 
 /** 'now', then 12m / 5h / 3d — a stamp that fits the right edge of a row. */
 function shortSince(ms: number): string | null {

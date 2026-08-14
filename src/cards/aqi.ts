@@ -77,22 +77,45 @@ interface Reading {
 
 const EDITOR_TAG = 'silk-aqi-card-editor';
 
+/** Top-level scalar keys the form owns, alongside the flattened entity ids. */
+const SCALAR_KEYS = ['name', 'icon'] as const;
+
 const EDITOR_SCHEMA = [
-  { name: 'pm25', selector: { entity: { domain: ['sensor'] } } },
-  { name: 'pm10', selector: { entity: { domain: ['sensor'] } } },
-  { name: 'co2', selector: { entity: { domain: ['sensor'] } } },
-  { name: 'voc', selector: { entity: { domain: ['sensor'] } } },
+  {
+    name: '',
+    type: 'grid',
+    schema: [
+      { name: 'pm25', selector: { entity: { domain: ['sensor'] } } },
+      { name: 'pm10', selector: { entity: { domain: ['sensor'] } } },
+    ],
+  },
+  {
+    name: '',
+    type: 'grid',
+    schema: [
+      { name: 'co2', selector: { entity: { domain: ['sensor'] } } },
+      { name: 'voc', selector: { entity: { domain: ['sensor'] } } },
+    ],
+  },
   { name: 'humidity', selector: { entity: { domain: ['sensor'] } } },
-  { name: 'name', selector: { text: {} } },
+  {
+    name: '',
+    type: 'grid',
+    schema: [
+      { name: 'name', selector: { text: {} } },
+      { name: 'icon', selector: { icon: {} } },
+    ],
+  },
 ];
 
 const EDITOR_LABELS: Record<string, string> = {
-  pm25: 'PM2.5 sensor',
-  pm10: 'PM10 sensor',
-  co2: 'CO₂ sensor',
-  voc: 'VOC sensor',
-  humidity: 'Humidity sensor',
-  name: 'Name',
+  pm25: 'PM2.5 센서',
+  pm10: 'PM10 센서',
+  co2: 'CO₂ 센서',
+  voc: 'VOC 센서',
+  humidity: '습도 센서',
+  name: '이름',
+  icon: '아이콘',
 };
 
 /**
@@ -110,7 +133,11 @@ class SilkAqiCardEditor extends LitElement {
 
   protected render(): TemplateResult | typeof nothing {
     if (!this.hass || !this._config) return nothing;
-    const data = { name: this._config.name, ...(this._config.entities ?? {}) };
+    const data = {
+      name: this._config.name,
+      icon: this._config.icon,
+      ...(this._config.entities ?? {}),
+    };
     return html`
       <ha-form
         .hass=${this.hass}
@@ -131,8 +158,11 @@ class SilkAqiCardEditor extends LitElement {
       if (typeof id === 'string' && id) entities[metric] = id;
     }
     const config: SilkAqiCardConfig = { ...this._config!, entities };
-    if (typeof value.name === 'string' && value.name) config.name = value.name;
-    else delete config.name;
+    for (const key of SCALAR_KEYS) {
+      const raw = value[key];
+      if (typeof raw === 'string' && raw) config[key] = raw;
+      else delete config[key];
+    }
     this.dispatchEvent(
       new CustomEvent('config-changed', {
         detail: { config },

@@ -12,7 +12,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -160,29 +161,33 @@ function ribbonPath(
 
 const EDITOR_TAG = 'silk-sankey-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
-    {
-      name: 'sources',
-      required: true,
-      selector: { entity: { multiple: true, domain: ['sensor', 'number', 'input_number'] } },
-    },
-    {
-      name: 'sinks',
-      required: true,
-      selector: { entity: { multiple: true, domain: ['sensor', 'number', 'input_number'] } },
-    },
+const NODE_DOMAINS = ['sensor', 'number', 'input_number'];
+
+// Both columns accept `{entity, name}` entries; the list editor folds the
+// picker's answer back into them so hand-written names survive an edit.
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    { ...entityListSelector('sources', NODE_DOMAINS), required: true },
+    { ...entityListSelector('sinks', NODE_DOMAINS), required: true },
     { name: 'name', selector: { text: {} } },
-    { name: 'unit', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'unit', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  {
-    sources: 'Sources (in)',
-    sinks: 'Sinks (out)',
-    name: 'Name',
-    unit: 'Unit',
-  }
-);
+  labels: {
+    sources: '유입 (소스)',
+    sinks: '사용처 (싱크)',
+    name: '이름',
+    unit: '단위',
+    color: '강조 색상',
+  },
+  listFields: ['sources', 'sinks'],
+});
 
 @customElement('silk-sankey-card')
 export class SilkSankeyCard extends LitElement {

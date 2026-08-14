@@ -60,8 +60,22 @@ registerEditor(
     { name: 'entity', required: true, selector: { entity: { domain: ['lawn_mower'] } } },
     { name: 'battery', selector: { entity: { domain: ['sensor'], device_class: 'battery' } } },
     { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', battery: 'Battery sensor', name: 'Name' }
+  {
+    entity: '엔티티',
+    battery: '배터리 센서',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+  }
 );
 
 /**

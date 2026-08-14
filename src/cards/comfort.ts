@@ -118,11 +118,13 @@ registerEditor(
       selector: { entity: { domain: ['sensor'], device_class: ['humidity'] } },
     },
     { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    temperature: 'Temperature sensor',
-    humidity: 'Humidity sensor',
-    name: 'Name',
+    temperature: '온도 센서',
+    humidity: '습도 센서',
+    name: '이름',
+    color: '강조 색상',
   }
 );
 

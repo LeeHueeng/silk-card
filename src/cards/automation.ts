@@ -30,8 +30,16 @@ registerEditor(
   [
     { name: 'entity', required: true, selector: { entity: { domain: ['automation'] } } },
     { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name' }
+  { entity: '엔티티', name: '이름', icon: '아이콘', color: '강조 색상' }
 );
 
 /** '<60s → just now, <1h → Nm ago, <24h → Hh ago, else Dd ago'; bad input → null. */

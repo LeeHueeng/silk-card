@@ -4,7 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, moreInfo, haptic, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 
 export const META = {
   type: 'silk-gantt-card',
@@ -67,20 +68,33 @@ const REFRESH_THROTTLE_MS = 60_000;
 
 const EDITOR_TAG = 'silk-gantt-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
-    { name: 'entities', required: true, selector: { entity: { multiple: true } } },
+/**
+ * The picker speaks bare ids; the list editor folds them back into the stored
+ * `entities`, so a hand-written `{entity, name}` row keeps its label as long as
+ * it survives the edit.
+ */
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    { ...entityListSelector('entities'), required: true },
     { name: 'name', selector: { text: {} } },
-    { name: 'hours_to_show', selector: { number: { min: 1, max: MAX_HOURS, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'hours_to_show', selector: { number: { min: 1, max: MAX_HOURS, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  {
-    entities: 'Entities',
-    name: 'Name',
-    hours_to_show: 'Hours to show',
+  labels: {
+    entities: '엔티티',
+    name: '이름',
+    hours_to_show: '표시 시간',
+    color: '강조 색상',
   },
-  { hours_to_show: DEFAULT_HOURS }
-);
+  defaults: { hours_to_show: DEFAULT_HOURS },
+  listFields: ['entities'],
+});
 
 /** `37m`, `2h`, `2h 15m` — never a bare number of seconds. */
 function durationText(seconds: number): string {

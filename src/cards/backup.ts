@@ -73,14 +73,21 @@ const OK_STATES = new Set([
 const EDITOR_TAG = 'silk-backup-card-editor';
 
 // Jobs stay YAML-only — five nested entity pickers per row would dwarf the
-// card; the editor owns the title and the staleness threshold.
+// card; every scalar the card reads is on the form.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', selector: { text: {} } },
-    { name: 'stale_hours', selector: { number: { min: 1, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'stale_hours', selector: { number: { min: 1, max: 8760, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { name: 'Name', stale_hours: 'Stale after (hours)' },
+  { name: '이름', stale_hours: '오래됨 기준(시간)', color: '강조 색상' },
   { name: 'Backups', stale_hours: DEFAULT_STALE_HOURS }
 );
 

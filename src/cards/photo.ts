@@ -3,7 +3,8 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, haptic } from '../shared/service';
-import { registerEditor } from '../shared/editor';
+import { registerListEditor } from '../shared/listeditor';
+import { entityListSelector } from '../shared/list';
 
 export const META = {
   type: 'silk-photo-card',
@@ -44,39 +45,46 @@ const CROSSFADE_MS = 400;
 
 const EDITOR_TAG = 'silk-photo-card-editor';
 
-// Source lists stay YAML-only: a slideshow is its list, and ha-form has no
-// repeatable entity/text rows worth the ceremony here.
-registerEditor(
-  EDITOR_TAG,
-  [
+// Both sources are on the form: `entities` through the multi-picker (its ids
+// are folded back into the stored list on change) and `images` through a
+// repeatable text field, so a slideshow can be built without touching YAML.
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    entityListSelector('entities', ['image', 'camera']),
+    { name: 'images', selector: { text: { multiple: true } } },
     {
       name: '',
       type: 'grid',
       schema: [
-        { name: 'interval', selector: { number: { min: 1, mode: 'box' } } },
+        { name: 'interval', selector: { number: { min: 1, max: 3600, step: 1, mode: 'box' } } },
         {
           name: 'fit',
           selector: {
             select: {
               mode: 'dropdown',
               options: [
-                { value: 'cover', label: 'Fill the frame' },
-                { value: 'contain', label: 'Fit inside' },
+                { value: 'cover', label: '가득 채우기' },
+                { value: 'contain', label: '전체 보이기' },
               ],
             },
           },
         },
+        { name: 'caption', selector: { boolean: {} } },
+        { name: 'shuffle', selector: { boolean: {} } },
       ],
     },
-    { name: 'caption', selector: { boolean: {} } },
   ],
-  {
-    interval: 'Seconds per photo',
-    fit: 'Framing',
-    caption: 'Show caption',
+  labels: {
+    entities: '사진 엔티티',
+    images: '사진 주소',
+    interval: '사진당 시간(초)',
+    fit: '표시 방식',
+    caption: '설명 표시',
+    shuffle: '무작위 순서',
   },
-  { interval: DEFAULT_INTERVAL_S, fit: 'cover', caption: false }
-);
+  defaults: { interval: DEFAULT_INTERVAL_S, fit: 'cover', caption: false, shuffle: false },
+  listFields: ['entities'],
+});
 
 /**
  * A slideshow that never blinks. Two stacked `<img>` layers: the visible one

@@ -49,21 +49,22 @@ const EDITOR_TAG = 'silk-clock-card-editor';
 registerEditor(
   EDITOR_TAG,
   [
+    { name: 'name', selector: { text: {} } },
     {
       name: 'style',
       selector: {
         select: {
           mode: 'dropdown',
           options: [
-            { value: 'digital', label: 'Digital' },
-            { value: 'analog', label: 'Analog' },
+            { value: 'digital', label: '디지털' },
+            { value: 'analog', label: '아날로그' },
           ],
         },
       },
     },
     { name: 'show_seconds', selector: { boolean: {} } },
   ],
-  { style: 'Style', show_seconds: 'Show seconds' },
+  { name: '이름', style: '표시 방식', show_seconds: '초 표시' },
   { style: 'digital', show_seconds: false }
 );
 

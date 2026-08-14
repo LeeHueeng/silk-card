@@ -64,12 +64,14 @@ registerEditor(
       selector: { entity: { multiple: true, domain: ['light'] } },
     },
     { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
     { name: 'moods', selector: { object: {} } },
   ],
   {
-    lights: 'Lights',
-    name: 'Name',
-    moods: 'Moods — list of {name, hs, kelvin, brightness_pct, icon}',
+    lights: '조명',
+    name: '이름',
+    color: '강조 색상',
+    moods: '무드 목록 — {name, hs, kelvin, brightness_pct, icon}',
   }
 );
 

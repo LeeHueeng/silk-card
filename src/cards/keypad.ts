@@ -24,9 +24,25 @@ export interface KeypadCardConfig extends LovelaceCardConfig {
   code_length?: number;
 }
 
+/** Free-length codes cap here so the readout can never overflow absurdly. */
+const MAX_CODE_LENGTH = 16;
+
 const EDITOR_TAG = 'silk-keypad-card-editor';
 
-registerEditor(EDITOR_TAG, [{ name: 'title', selector: { text: {} } }], { title: 'Title' });
+// `action` stays YAML-only — a {service, data} object, where `data` is a
+// free-form map no ha-form selector expresses. Leaving `code_length` empty
+// keeps the pad free-length, so it carries no default here.
+registerEditor(
+  EDITOR_TAG,
+  [
+    { name: 'title', selector: { text: {} } },
+    {
+      name: 'code_length',
+      selector: { number: { min: 1, max: MAX_CODE_LENGTH, step: 1, mode: 'box' } },
+    },
+  ],
+  { title: '제목', code_length: '자동 전송 자릿수' }
+);
 
 /** Keypad layout: 1-9, then backspace / 0 / submit. */
 const KEYS: ReadonlyArray<{ k: string; label: string; icon?: string }> = [
@@ -44,8 +60,6 @@ const KEYS: ReadonlyArray<{ k: string; label: string; icon?: string }> = [
   { k: 'submit', label: 'Submit', icon: 'mdi:check' },
 ];
 
-/** Free-length codes cap here so the readout can never overflow absurdly. */
-const MAX_CODE_LENGTH = 16;
 const ERROR_FLASH_MS = 700;
 
 @customElement('silk-keypad-card')

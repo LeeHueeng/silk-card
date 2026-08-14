@@ -16,7 +16,7 @@ export interface SilkThemeCardConfig extends LovelaceCardConfig {
   name?: string;
   /** The theme Light/Dark switch modes on. Default HA's `default`. */
   theme?: string;
-  /** YAML-only: name the themes yourself instead of Auto/Light/Dark. */
+  /** Name the themes yourself instead of Auto/Light/Dark. */
   themes?: string[];
 }
 
@@ -76,15 +76,21 @@ function readChoice(): string | undefined {
 
 const EDITOR_TAG = 'silk-theme-card-editor';
 
-// `themes` stays YAML-only: it is a list, and ha-form has no repeatable row
-// worth the ceremony for three chips.
+// `themes` names its own chips, so it is a free list of theme names: no
+// selector can enumerate them, but a repeatable text field still keeps the
+// whole card reachable from the form.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', selector: { text: {} } },
     { name: 'theme', selector: { theme: {} } },
+    { name: 'themes', selector: { text: { multiple: true } } },
   ],
-  { name: 'Name', theme: 'Theme Light/Dark switch' }
+  {
+    name: '이름',
+    theme: '라이트/다크 전환 테마',
+    themes: `테마 목록 (직접 지정, 최대 ${MAX_THEMES}개)`,
+  }
 );
 
 /**

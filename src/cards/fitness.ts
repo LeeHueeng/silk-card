@@ -101,11 +101,20 @@ registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', selector: { text: {} } },
-    ringSection('steps', 'Steps ring'),
-    ringSection('exercise', 'Exercise ring'),
-    ringSection('stand', 'Stand ring'),
+    { name: 'color', selector: { ui_color: {} } },
+    ringSection('steps', '걸음 수 링'),
+    ringSection('exercise', '운동 링'),
+    ringSection('stand', '서 있기 링'),
   ],
-  { name: 'Name', entity: 'Entity', goal: 'Goal' }
+  {
+    name: '이름',
+    color: '강조 색상',
+    steps: '걸음 수 링',
+    exercise: '운동 링',
+    stand: '서 있기 링',
+    entity: '엔티티',
+    goal: '목표값',
+  }
 );
 
 @customElement('silk-fitness-card')

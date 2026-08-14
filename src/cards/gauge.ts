@@ -300,10 +300,25 @@ registerEditor(
       selector: { entity: { domain: ['counter', 'input_number', 'number', 'sensor'] } },
     },
     { name: 'name', selector: { text: {} } },
-    { name: 'min', selector: { number: { mode: 'box' } } },
-    { name: 'max', selector: { number: { mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'min', selector: { number: { mode: 'box' } } },
+        { name: 'max', selector: { number: { mode: 'box' } } },
+        { name: 'unit', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name', min: 'Minimum', max: 'Maximum' },
+  {
+    entity: '엔티티',
+    name: '이름',
+    min: '최솟값',
+    max: '최댓값',
+    unit: '단위',
+    color: '강조 색상',
+  },
   { min: 0, max: 100 }
 );
 

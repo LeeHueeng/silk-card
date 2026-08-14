@@ -4,12 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, moreInfo, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import {
-  EntityItem,
-  entityListSelector,
-  hasItemDetail,
-  normalizeEntityList,
-} from '../shared/list';
+import { EntityItem, entityListSelector, normalizeEntityList } from '../shared/list';
+import { registerListEditor } from '../shared/listeditor';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -36,15 +32,14 @@ const EDITOR_LABELS: Record<string, string> = {
 };
 
 /**
- * The schema depends on the config, so this card hosts its own ha-form rather
- * than using registerEditor's fixed schema: when the YAML carries per-chip
- * name/icon/color, `chips` is left out of the schema entirely and the
- * hand-written list rides through the round trip untouched.
+ * One editor, chip picker always present. The picker answers with bare ids and
+ * they are folded back into the stored list, so a chip that survives the edit
+ * keeps its name, icon and color; keys the schema never mentions (`type`,
+ * `grid_options`, per-chip detail) ride through untouched.
  */
-function chipsSchema(config: SilkChipsCardConfig): Record<string, unknown>[] {
-  const schema: Record<string, unknown>[] = [];
-  if (!hasItemDetail(config.chips)) schema.push(entityListSelector('chips'));
-  schema.push({
+const EDITOR_SCHEMA: object[] = [
+  entityListSelector('chips'),
+  {
     name: 'alignment',
     selector: {
       select: {
@@ -55,67 +50,15 @@ function chipsSchema(config: SilkChipsCardConfig): Record<string, unknown>[] {
         ],
       },
     },
-  });
-  return schema;
-}
+  },
+];
 
-if (!customElements.get(EDITOR_TAG)) {
-  class SilkChipsCardEditor extends LitElement {
-    @property({ attribute: false }) public hass?: HomeAssistant;
-
-    @state() private _config?: SilkChipsCardConfig;
-
-    public setConfig(config: SilkChipsCardConfig): void {
-      this._config = config;
-    }
-
-    protected render(): TemplateResult | typeof nothing {
-      const config = this._config;
-      if (!this.hass || !config) return nothing;
-      const detailed = hasItemDetail(config.chips);
-      return html`
-        <ha-form
-          .hass=${this.hass}
-          .data=${{ alignment: 'start', ...config }}
-          .schema=${chipsSchema(config)}
-          .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
-          @value-changed=${this._valueChanged}
-        ></ha-form>
-        ${detailed
-          ? html`<p class="note">
-              칩 ${normalizeEntityList(config.chips).length}개에 이름·아이콘·색상이 지정되어 있어
-              목록은 YAML에서만 편집할 수 있습니다. 다른 설정은 여기서 바꿔도 목록은 그대로
-              유지됩니다.
-            </p>`
-          : nothing}
-      `;
-    }
-
-    private _valueChanged(ev: CustomEvent): void {
-      ev.stopPropagation();
-      // Merged onto the existing config so keys the schema left out — a
-      // hand-written `chips` list, `type` — survive the round trip.
-      const config = { ...this._config, ...(ev.detail.value as Record<string, unknown>) };
-      this.dispatchEvent(
-        new CustomEvent('config-changed', {
-          detail: { config },
-          bubbles: true,
-          composed: true,
-        })
-      );
-    }
-
-    static styles = css`
-      .note {
-        margin: 10px 4px 0;
-        font-size: 12px;
-        line-height: 1.45;
-        color: var(--secondary-text-color);
-      }
-    `;
-  }
-  customElements.define(EDITOR_TAG, SilkChipsCardEditor);
-}
+registerListEditor(EDITOR_TAG, {
+  schema: EDITOR_SCHEMA,
+  labels: EDITOR_LABELS,
+  defaults: { alignment: 'start' },
+  listFields: ['chips'],
+});
 
 /** '°C'/'°F' → '°'; everything else trimmed and appended without a space. */
 function condenseUnit(unit: string): string {

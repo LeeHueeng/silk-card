@@ -31,7 +31,7 @@ export interface SilkPrinterCardConfig extends LovelaceCardConfig {
   /** Button entity that cancels the job (confirmed before pressing). */
   stop?: string;
   icon?: string;
-  /** Accent override (YAML). */
+  /** Accent override. */
   color?: string;
 }
 
@@ -138,21 +138,29 @@ registerEditor(
         { name: 'stop', selector: { entity: { domain: ['button', 'input_button'] } } },
       ],
     },
-    { name: 'icon', selector: { icon: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    name: 'Name',
-    status: 'Print state',
-    progress: 'Progress (%)',
-    remaining: 'Time remaining',
-    nozzle: 'Nozzle temperature',
-    nozzle_target: 'Nozzle target',
-    bed: 'Bed temperature',
-    bed_target: 'Bed target',
-    camera: 'Camera',
-    pause: 'Pause button',
-    stop: 'Stop button',
-    icon: 'Icon',
+    name: '이름',
+    status: '프린트 상태',
+    progress: '진행률 (%)',
+    remaining: '남은 시간',
+    nozzle: '노즐 온도',
+    nozzle_target: '노즐 목표 온도',
+    bed: '베드 온도',
+    bed_target: '베드 목표 온도',
+    camera: '카메라',
+    pause: '일시정지 버튼',
+    stop: '정지 버튼',
+    icon: '아이콘',
+    color: '강조 색상',
   },
   { name: DEFAULT_NAME }
 );

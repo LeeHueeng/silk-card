@@ -63,14 +63,21 @@ const METRIC_SUFFIX =
 const EDITOR_TAG = 'silk-addons-card-editor';
 
 // `addons` stays YAML-only (a list of objects with per-add-on version and
-// update entities); the editor covers the two settings that change the reading.
+// update entities); every scalar the card reads is on the form.
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', selector: { text: {} } },
-    { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { name: 'Name', limit: 'Rows to show' },
+  { name: '이름', limit: '표시 개수', color: '강조 색상' },
   { limit: DEFAULT_LIMIT }
 );
 

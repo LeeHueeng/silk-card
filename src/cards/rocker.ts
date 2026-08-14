@@ -32,8 +32,17 @@ registerEditor(
       selector: { entity: { domain: ['switch', 'light', 'input_boolean', 'fan'] } },
     },
     { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'show_name', selector: { boolean: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name' }
+  { entity: '엔터티', name: '이름', show_name: '이름 표시', color: '강조 색상' },
+  { show_name: true }
 );
 
 const OPTIMISTIC_TIMEOUT_MS = 2000;

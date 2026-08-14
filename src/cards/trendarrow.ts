@@ -78,17 +78,19 @@ registerEditor(
       type: 'grid',
       schema: [
         { name: 'decimals', selector: { number: { min: 0, max: 5, mode: 'box' } } },
-        { name: 'invert', selector: { boolean: {} } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
+    { name: 'invert', selector: { boolean: {} } },
   ],
   {
-    entity: 'Entity',
-    name: 'Name',
-    unit: 'Unit',
-    hours_to_show: 'Hours to show',
-    decimals: 'Decimals',
-    invert: 'Invert (up = bad)',
+    entity: '엔티티',
+    name: '이름',
+    unit: '단위',
+    hours_to_show: '표시 시간',
+    decimals: '소수점 자리',
+    color: '강조 색상',
+    invert: '반전 (상승이 나쁨)',
   },
   { hours_to_show: DEFAULT_HOURS }
 );

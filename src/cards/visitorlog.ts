@@ -89,14 +89,16 @@ registerEditor(
       schema: [
         { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
         { name: 'hours_to_show', selector: { number: { min: 1, max: MAX_HOURS, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
   {
-    entities: 'Door, motion and doorbell entities',
-    name: 'Name',
-    limit: 'Rows',
-    hours_to_show: 'Hours to show',
+    entities: '문·움직임·초인종 엔티티',
+    name: '이름',
+    limit: '표시 개수',
+    hours_to_show: '표시 시간',
+    color: '강조 색상',
   },
   { limit: DEFAULT_LIMIT, hours_to_show: DEFAULT_HOURS }
 );

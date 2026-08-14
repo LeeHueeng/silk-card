@@ -73,8 +73,8 @@ registerEditor(
             select: {
               mode: 'dropdown',
               options: [
-                { value: 'left', label: 'Left' },
-                { value: 'center', label: 'Center' },
+                { value: 'left', label: '왼쪽' },
+                { value: 'center', label: '가운데' },
               ],
             },
           },
@@ -82,15 +82,17 @@ registerEditor(
       ],
     },
     { name: 'action', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
   ],
   {
-    title: 'Title',
-    subtitle: 'Subtitle',
-    image: 'Image URL (/local/…)',
-    entity: 'Entity (its state joins the subtitle)',
-    height: 'Height (px)',
-    align: 'Alignment',
-    action: 'Navigation path',
+    title: '제목',
+    subtitle: '부제목',
+    image: '이미지 경로(/local/…)',
+    entity: '엔티티(상태가 부제목에 붙습니다)',
+    height: '높이(px)',
+    align: '정렬',
+    action: '이동 경로',
+    color: '강조 색상',
   },
   { height: DEFAULT_HEIGHT, align: 'left' }
 );

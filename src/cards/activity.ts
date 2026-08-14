@@ -47,9 +47,10 @@ const NOTE_TTL_MS = 5000;
 
 const EDITOR_TAG = 'silk-activity-card-editor';
 
-// `activities` is a list of nested objects, which ha-form cannot author — the
-// editor covers the scalar options and the macros stay YAML.
-registerEditor(EDITOR_TAG, [{ name: 'name', selector: { text: {} } }], { name: 'Name' });
+// `activities` is a list of nested objects (name + icon + a service-call list),
+// which ha-form cannot author — a row editor is the only way to reach it, so
+// the macros stay YAML and the editor covers the scalar options.
+registerEditor(EDITOR_TAG, [{ name: 'name', selector: { text: {} } }], { name: '이름' });
 
 /**
  * Activity macros: each tile runs its steps in order, awaiting every service

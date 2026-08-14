@@ -125,21 +125,23 @@ registerEditor(
             select: {
               mode: 'dropdown',
               options: [
-                { value: 'C', label: 'Celsius' },
-                { value: 'F', label: 'Fahrenheit' },
+                { value: 'C', label: '섭씨 (°C)' },
+                { value: 'F', label: '화씨 (°F)' },
               ],
             },
           },
         },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
   {
-    temperature: 'Temperature sensor',
-    humidity: 'Humidity sensor',
-    name: 'Name',
-    icon: 'Icon',
-    unit: 'Display unit',
+    temperature: '온도 센서',
+    humidity: '습도 센서',
+    name: '이름',
+    icon: '아이콘',
+    unit: '표시 단위',
+    color: '강조 색상',
   }
 );
 

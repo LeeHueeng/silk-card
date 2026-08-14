@@ -97,17 +97,25 @@ registerEditor(
       ],
     },
     { name: 'name', selector: { text: {} } },
-    { name: 'host', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'host', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    cpu: 'CPU (%)',
-    memory: 'Memory (%)',
-    disk: 'Disk (%)',
-    swap: 'Swap (%)',
-    uptime: 'Uptime',
-    load: 'Load average',
-    name: 'Name',
-    host: 'Host label',
+    cpu: 'CPU 사용률 (%)',
+    memory: '메모리 사용률 (%)',
+    disk: '디스크 사용률 (%)',
+    swap: '스왑 사용률 (%)',
+    uptime: '가동 시간',
+    load: '부하 평균',
+    name: '이름',
+    host: '호스트 라벨',
+    color: '강조 색상',
   }
 );
 

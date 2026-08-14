@@ -4,7 +4,8 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import { entityListSelector } from '../shared/list';
+import { registerListEditor } from '../shared/listeditor';
 
 export const META = {
   type: 'silk-transit-card',
@@ -40,14 +41,26 @@ export interface SilkTransitLineConfig {
   color?: string;
 }
 
+/**
+ * `lines` takes both shapes: a bare entity id — what the visual editor's
+ * picker writes — becomes a line that reads its badge and destination off the
+ * feed, while an object spells out name/line/color by hand.
+ */
+export type SilkTransitLineEntry = string | SilkTransitLineConfig;
+
 export interface SilkTransitCardConfig extends LovelaceCardConfig {
-  /** Lines to watch. YAML-only — it is a list of objects. */
-  lines: SilkTransitLineConfig[];
+  /** Lines to watch. */
+  lines: SilkTransitLineEntry[];
   /** Header label; `''` drops the header and gives the row back to the board. */
   name?: string;
   /** Departure rows shown, soonest first. Default 5. */
   limit?: number;
 }
+
+/** The config after setConfig has folded every bare id into an object. */
+type ResolvedTransitConfig = Omit<SilkTransitCardConfig, 'lines'> & {
+  lines: SilkTransitLineConfig[];
+};
 
 /** One board row. `ms` is null when nothing is departing (or the entity is dark). */
 interface Departure {
@@ -143,17 +156,25 @@ function shortCode(text: string): string {
 
 const EDITOR_TAG = 'silk-transit-card-editor';
 
-// `lines` stays YAML-only (a list of objects with per-line colors); the header
-// and the row count are the two settings worth a picker.
-registerEditor(
-  EDITOR_TAG,
-  [
-    { name: 'name', selector: { text: {} } },
-    { name: 'limit', selector: { number: { min: 1, max: 12, mode: 'box' } } },
+// The picker writes bare ids into `lines`; per-line badge labels and colors
+// survive it, because the merge folds the picked ids back into the entries
+// that are already there.
+registerListEditor(EDITOR_TAG, {
+  schema: [
+    entityListSelector('lines', ['sensor']),
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'name', selector: { text: {} } },
+        { name: 'limit', selector: { number: { min: 1, max: 12, mode: 'box' } } },
+      ],
+    },
   ],
-  { name: 'Name', limit: 'Departures shown' },
-  { limit: DEFAULT_LIMIT }
-);
+  labels: { lines: '노선 엔티티', name: '이름', limit: '표시 개수' },
+  defaults: { limit: DEFAULT_LIMIT },
+  listFields: ['lines'],
+});
 
 /**
  * The departure board: line badge, where it goes, how long you have. One
@@ -163,7 +184,7 @@ registerEditor(
 export class SilkTransitCard extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @state() private _config?: SilkTransitCardConfig;
+  @state() private _config?: ResolvedTransitConfig;
 
   private _tickTimer?: number;
 
@@ -191,7 +212,12 @@ export class SilkTransitCard extends LitElement {
     if (!Array.isArray(config.lines) || config.lines.length === 0) {
       throw new Error('silk-transit-card: `lines` requires at least one { entity } entry');
     }
-    const broken = config.lines.find(
+    // A bare id is the shape the entity picker writes; everything downstream
+    // reads a line as an object, so fold it here once.
+    const lines = config.lines.map((line) =>
+      typeof line === 'string' ? { entity: line } : line
+    );
+    const broken = lines.find(
       (line) => !line || typeof line.entity !== 'string' || line.entity === ''
     );
     if (broken !== undefined) {
@@ -200,7 +226,7 @@ export class SilkTransitCard extends LitElement {
     if (config.limit !== undefined && !(Number(config.limit) >= 1)) {
       throw new Error('silk-transit-card: `limit` must be at least 1');
     }
-    this._config = config;
+    this._config = { ...config, lines };
   }
 
   public getCardSize(): number {

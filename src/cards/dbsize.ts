@@ -25,7 +25,7 @@ export interface SilkDatabaseCardConfig extends LovelaceCardConfig {
   max_size?: number;
   /** Show the purge button. Setting `purge_service` also turns it on. */
   purge?: boolean;
-  /** Service the purge button calls. YAML-only. Default `recorder.purge`. */
+  /** Service the purge button calls. Default `recorder.purge`. */
   purge_service?: string;
   name?: string;
   /** Accent override. */
@@ -73,8 +73,8 @@ const GB = 1024 ** 3;
 
 const EDITOR_TAG = 'silk-database-card-editor';
 
-// `purge_service` stays YAML-only: pointing the button at a different service
-// is a deliberate act, not a checkbox.
+// `purge_service` is on the form but never defaulted: writing it also turns the
+// purge button on, so an empty field has to keep meaning `recorder.purge`.
 registerEditor(
   EDITOR_TAG,
   [
@@ -95,17 +95,27 @@ registerEditor(
         { name: 'max_size', selector: { number: { min: 0.1, step: 0.1, mode: 'box' } } },
       ],
     },
-    { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'name', selector: { text: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
     { name: 'purge', selector: { boolean: {} } },
+    { name: 'purge_service', selector: { text: {} } },
   ],
   {
-    size: 'Database size sensor',
-    rows: 'Row count sensor',
-    oldest: 'Oldest record sensor',
-    purge_days: 'Keep days',
-    max_size: 'Bar maximum (GB)',
-    name: 'Name',
-    purge: 'Show purge button',
+    size: '데이터베이스 크기 센서',
+    rows: '행 수 센서',
+    oldest: '가장 오래된 기록 센서',
+    purge_days: '보관 일수',
+    max_size: '막대 최대치(GB)',
+    name: '이름',
+    color: '강조 색상',
+    purge: '정리 버튼 표시',
+    purge_service: `정리 서비스 (비우면 ${DEFAULT_PURGE_SERVICE})`,
   },
   { max_size: DEFAULT_MAX_GB }
 );

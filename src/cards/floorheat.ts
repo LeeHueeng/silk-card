@@ -56,10 +56,15 @@ const EDITOR_TAG = 'silk-floor-card-editor';
 
 // `zones` stays YAML-only (a list of objects); the header label is the only
 // thing left worth a form field.
+// `zones` stays YAML-only (a list of {entity, name} loops); the rest of the
+// card's config is on the form.
 registerEditor(
   EDITOR_TAG,
-  [{ name: 'name', selector: { text: {} } }],
-  { name: 'Name' },
+  [
+    { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
+  ],
+  { name: '이름', color: '강조 색상' },
   { name: DEFAULT_NAME }
 );
 

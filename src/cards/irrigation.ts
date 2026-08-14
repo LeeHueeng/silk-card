@@ -47,7 +47,22 @@ const TICK_MS = 1000;
 const EDITOR_TAG = 'silk-irrigation-card-editor';
 
 // Zones stay YAML-only — per-zone entity + duration pairs would dwarf the card.
-registerEditor(EDITOR_TAG, [{ name: 'name', selector: { text: {} } }], { name: 'Name' });
+registerEditor(
+  EDITOR_TAG,
+  [
+    { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
+  ],
+  { name: '이름', icon: '아이콘', color: '강조 색상' },
+  { icon: DEFAULT_ICON, name: DEFAULT_NAME }
+);
 
 /** Countdown display: m:ss under an hour, h:mm:ss beyond. Ceils so 0:00 means done. */
 function formatSeconds(total: number): string {

@@ -46,15 +46,25 @@ registerEditor(
     { name: 'month', selector: { entity: { domain: ['sensor'] } } },
     { name: 'leak', selector: { entity: { domain: ['binary_sensor'] } } },
     { name: 'name', selector: { text: {} } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
   {
-    flow: 'Flow rate',
-    today: 'Used today',
-    month: 'Used this month',
-    leak: 'Leak sensor',
-    name: 'Name',
+    flow: '유량 센서',
+    today: '오늘 사용량',
+    month: '이번 달 사용량',
+    leak: '누수 센서',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
   },
-  { name: DEFAULT_NAME }
+  { name: DEFAULT_NAME, icon: DEFAULT_ICON }
 );
 
 /** Numeric state, NaN when the entity is missing/unavailable/non-numeric. */

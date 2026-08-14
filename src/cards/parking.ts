@@ -25,7 +25,7 @@ export interface SilkParkingCardConfig extends LovelaceCardConfig {
   map_url?: string;
   name?: string;
   icon?: string;
-  /** Accent override (YAML only). */
+  /** Accent override. */
   color?: string;
 }
 
@@ -52,6 +52,7 @@ registerEditor(
       type: 'grid',
       schema: [
         { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
         { name: 'since', selector: { entity: { domain: ['sensor', 'input_datetime'] } } },
         { name: 'limit_minutes', selector: { number: { min: 1, mode: 'box' } } },
         { name: 'cost_per_hour', selector: { number: { min: 0, step: 0.1, mode: 'box' } } },
@@ -60,13 +61,14 @@ registerEditor(
     { name: 'map_url', selector: { text: {} } },
   ],
   {
-    location: 'Location entity',
-    name: 'Name',
-    icon: 'Icon',
-    since: 'Parked since (timestamp)',
-    limit_minutes: 'Ticket limit (minutes)',
-    cost_per_hour: 'Cost per hour',
-    map_url: 'Map / directions URL',
+    location: '위치 엔티티',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+    since: '주차 시작 시각',
+    limit_minutes: '주차 제한 시간 (분)',
+    cost_per_hour: '시간당 요금',
+    map_url: '지도 / 길찾기 URL',
   },
   { icon: DEFAULT_ICON }
 );

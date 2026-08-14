@@ -48,11 +48,13 @@ registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', selector: { text: {} } },
+    { name: 'color', selector: { ui_color: {} } },
     { name: 'steps', required: true, selector: { object: {} } },
   ],
   {
-    name: 'Name',
-    steps: 'Steps — list of {name, entity, desired: off|on|locked|closed, service, data}',
+    name: '이름',
+    color: '강조 색상',
+    steps: '단계 목록 — {name, entity, desired: off|on|locked|closed, service, data}',
   },
   { name: 'Goodnight' }
 );

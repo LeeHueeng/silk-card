@@ -16,7 +16,7 @@ export interface SilkMoonCardConfig extends LovelaceCardConfig {
   /** A moon phase sensor. Omit to compute the phase locally from the date. */
   entity?: string;
   name?: string;
-  /** Disc diameter cap in px (YAML only). Default 96. */
+  /** Disc diameter cap in px. Default 96. */
   size?: number;
 }
 
@@ -157,8 +157,13 @@ registerEditor(
   [
     { name: 'entity', selector: { entity: { domain: ['sensor'] } } },
     { name: 'name', selector: { text: {} } },
+    {
+      name: 'size',
+      selector: { number: { min: MIN_SIZE, max: MAX_SIZE, step: 4, mode: 'box' } },
+    },
   ],
-  { entity: 'Moon phase sensor (optional)', name: 'Name' }
+  { entity: '달 위상 센서 (선택)', name: '이름', size: '원반 크기 (px)' },
+  { size: DEFAULT_SIZE }
 );
 
 @customElement('silk-moon-card')

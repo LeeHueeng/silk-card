@@ -78,14 +78,16 @@ registerEditor(
       schema: [
         { name: 'threshold', selector: { number: { min: 0, mode: 'box' } } },
         { name: 'hours_to_show', selector: { number: { min: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
       ],
     },
   ],
   {
-    entity: 'Power sensor',
-    name: 'Name',
-    threshold: 'Limit',
-    hours_to_show: 'Hours to show (empty = today)',
+    entity: '전력 센서',
+    name: '이름',
+    threshold: '한계 전력',
+    hours_to_show: '표시 시간 (비우면 오늘)',
+    color: '강조 색상',
   }
 );
 

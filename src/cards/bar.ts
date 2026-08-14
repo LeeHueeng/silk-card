@@ -45,11 +45,35 @@ registerEditor(
       selector: { entity: { domain: ['counter', 'input_number', 'number', 'sensor'] } },
     },
     { name: 'name', selector: { text: {} } },
-    { name: 'min', selector: { number: { mode: 'box' } } },
-    { name: 'max', selector: { number: { mode: 'box' } } },
-    { name: 'target', selector: { number: { mode: 'box' } } },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'min', selector: { number: { mode: 'box' } } },
+        { name: 'max', selector: { number: { mode: 'box' } } },
+        { name: 'target', selector: { number: { mode: 'box' } } },
+        { name: 'unit', selector: { text: {} } },
+      ],
+    },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'icon', selector: { icon: {} } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { entity: 'Entity', name: 'Name', min: 'Minimum', max: 'Maximum', target: 'Target' },
+  {
+    entity: '엔티티',
+    name: '이름',
+    min: '최솟값',
+    max: '최댓값',
+    target: '목표값',
+    unit: '단위',
+    icon: '아이콘',
+    color: '강조 색상',
+  },
   { min: 0, max: 100 }
 );
 

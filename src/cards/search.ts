@@ -22,7 +22,7 @@ export const META = {
 
 export interface SilkSearchCardConfig extends LovelaceCardConfig {
   name?: string;
-  /** YAML-only: restrict the scan to these domains. Default: every domain. */
+  /** Restrict the scan to these domains. Default: every domain. */
   domains?: string[];
   /** Result rows shown. Default 8. */
   limit?: number;
@@ -80,14 +80,67 @@ function scoreOf(name: string, id: string, q: string): number {
 
 const EDITOR_TAG = 'silk-search-card-editor';
 
+/** Domains worth offering by name; any other domain can still be typed in. */
+const DOMAIN_OPTIONS: { value: string; label: string }[] = [
+  { value: 'light', label: '조명 (light)' },
+  { value: 'switch', label: '스위치 (switch)' },
+  { value: 'sensor', label: '센서 (sensor)' },
+  { value: 'binary_sensor', label: '이진 센서 (binary_sensor)' },
+  { value: 'climate', label: '냉난방 (climate)' },
+  { value: 'cover', label: '커버 (cover)' },
+  { value: 'fan', label: '팬 (fan)' },
+  { value: 'media_player', label: '미디어 플레이어 (media_player)' },
+  { value: 'lock', label: '잠금 (lock)' },
+  { value: 'vacuum', label: '청소기 (vacuum)' },
+  { value: 'camera', label: '카메라 (camera)' },
+  { value: 'scene', label: '씬 (scene)' },
+  { value: 'script', label: '스크립트 (script)' },
+  { value: 'automation', label: '자동화 (automation)' },
+  { value: 'person', label: '사람 (person)' },
+  { value: 'device_tracker', label: '기기 추적 (device_tracker)' },
+  { value: 'number', label: '숫자 (number)' },
+  { value: 'select', label: '선택 (select)' },
+  { value: 'button', label: '버튼 (button)' },
+  { value: 'input_boolean', label: '입력 부울 (input_boolean)' },
+  { value: 'input_number', label: '입력 숫자 (input_number)' },
+  { value: 'input_select', label: '입력 선택 (input_select)' },
+  { value: 'input_text', label: '입력 텍스트 (input_text)' },
+  { value: 'update', label: '업데이트 (update)' },
+  { value: 'weather', label: '날씨 (weather)' },
+  { value: 'calendar', label: '캘린더 (calendar)' },
+  { value: 'timer', label: '타이머 (timer)' },
+  { value: 'alarm_control_panel', label: '경보 패널 (alarm_control_panel)' },
+  { value: 'humidifier', label: '가습기 (humidifier)' },
+  { value: 'water_heater', label: '온수기 (water_heater)' },
+];
+
 registerEditor(
   EDITOR_TAG,
   [
     { name: 'name', selector: { text: {} } },
     { name: 'placeholder', selector: { text: {} } },
-    { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
+    {
+      name: 'domains',
+      selector: {
+        select: { options: DOMAIN_OPTIONS, multiple: true, custom_value: true, mode: 'dropdown' },
+      },
+    },
+    {
+      name: '',
+      type: 'grid',
+      schema: [
+        { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, step: 1, mode: 'box' } } },
+        { name: 'color', selector: { ui_color: {} } },
+      ],
+    },
   ],
-  { name: 'Name', placeholder: 'Placeholder', limit: 'Results shown' },
+  {
+    name: '이름',
+    placeholder: '입력 안내 문구',
+    domains: '검색할 도메인',
+    limit: '표시 개수',
+    color: '강조 색상',
+  },
   { limit: DEFAULT_LIMIT, placeholder: DEFAULT_PLACEHOLDER }
 );
 

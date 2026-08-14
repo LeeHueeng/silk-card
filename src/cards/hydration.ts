@@ -77,8 +77,15 @@ registerEditor(
         { name: 'goal', selector: { number: { min: 1, max: MAX_GOAL, mode: 'box' } } },
       ],
     },
+    { name: 'color', selector: { ui_color: {} } },
   ],
-  { entity: 'Entity', name: 'Name', icon: 'Icon', goal: 'Daily goal (glasses)' },
+  {
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    goal: '하루 목표(잔)',
+    color: '강조 색상',
+  },
   { goal: DEFAULT_GOAL }
 );
 
