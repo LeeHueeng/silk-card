@@ -4,7 +4,13 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isUnavailable, moreInfo, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import {
+  EntityItem,
+  EntityListConfig,
+  entityListSelector,
+  hasItemDetail,
+  normalizeEntityList,
+} from '../shared/list';
 
 export const META = {
   type: 'silk-presence-card',
@@ -13,8 +19,11 @@ export const META = {
 };
 
 export interface SilkPresenceCardConfig extends LovelaceCardConfig {
-  /** person.* / device_tracker.* ids. YAML-only. */
-  entities: string[];
+  /**
+   * person.* / device_tracker.* — plain ids from the picker, or
+   * `{entity, name, icon, color}` when YAML wants to relabel a face.
+   */
+  entities: EntityListConfig;
   name?: string;
 }
 
@@ -22,8 +31,63 @@ const AVATAR_SIZE = 44;
 
 const EDITOR_TAG = 'silk-presence-card-editor';
 
-// Entities stay YAML-only — the strip is the whole card, one picker suffices.
-registerEditor(EDITOR_TAG, [{ name: 'name', selector: { text: {} } }], { name: 'Name' });
+const EDITOR_LABELS: Record<string, string> = {
+  entities: '사람',
+  name: '이름',
+};
+
+const YAML_ONLY_NOTE = 'YAML에 항목별 설정이 있어 편집기에서 건드리지 않습니다';
+
+/**
+ * The schema depends on the config, so this card owns its editor element
+ * instead of using the fixed-schema `registerEditor` helper: once the list
+ * carries hand-written per-person detail the picker is replaced by a read-only
+ * note, and ha-form passes untouched every key its schema never mentions.
+ */
+function presenceSchema(config: SilkPresenceCardConfig): Record<string, unknown>[] {
+  return [
+    hasItemDetail(config.entities)
+      ? { name: 'entities', type: 'constant', value: YAML_ONLY_NOTE }
+      : entityListSelector('entities', ['person', 'device_tracker']),
+    { name: 'name', selector: { text: {} } },
+  ];
+}
+
+class SilkPresenceCardEditor extends LitElement {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
+  @state() private _config?: SilkPresenceCardConfig;
+
+  public setConfig(config: SilkPresenceCardConfig): void {
+    this._config = config;
+  }
+
+  protected render(): TemplateResult | typeof nothing {
+    if (!this.hass || !this._config) return nothing;
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${this._config}
+        .schema=${presenceSchema(this._config)}
+        .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+    `;
+  }
+
+  private _valueChanged(ev: CustomEvent): void {
+    ev.stopPropagation();
+    this.dispatchEvent(
+      new CustomEvent('config-changed', {
+        detail: { config: ev.detail.value },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+}
+
+if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkPresenceCardEditor);
 
 /**
  * The family strip: one 44px avatar per person. Home reads as presence —
@@ -38,6 +102,9 @@ export class SilkPresenceCard extends LitElement {
 
   /** entity_picture URLs that failed to load → fall back to the initial. */
   @state() private _broken: ReadonlySet<string> = new Set();
+
+  /** Both config shapes, flattened to objects once at setConfig time. */
+  private _people: EntityItem[] = [];
 
   public static getStubConfig(hass: HomeAssistant): Partial<SilkPresenceCardConfig> {
     const entities = Object.keys(hass.states).filter((id) => id.startsWith('person.'));
@@ -54,15 +121,18 @@ export class SilkPresenceCard extends LitElement {
         'silk-presence-card: `entities` is required — a list of person/device_tracker ids'
       );
     }
-    for (const id of config.entities) {
+    // Validate the raw entries so a typo still throws, whichever shape it is in.
+    for (const entry of config.entities) {
+      const id = typeof entry === 'string' ? entry : entry?.entity;
       const domain = typeof id === 'string' ? domainOf(id) : '';
       if (domain !== 'person' && domain !== 'device_tracker') {
         throw new Error(
-          `silk-presence-card: \`${String(id)}\` is not a person or device_tracker entity`
+          `silk-presence-card: \`${String(id ?? entry)}\` is not a person or device_tracker entity`
         );
       }
     }
     this._config = config;
+    this._people = normalizeEntityList(config.entities);
     this._broken = new Set();
   }
 
@@ -98,38 +168,46 @@ export class SilkPresenceCard extends LitElement {
     this._broken = next;
   }
 
-  private _renderPerson(entityId: string): TemplateResult {
+  private _renderPerson(item: EntityItem): TemplateResult {
     const hass = this.hass!;
+    const entityId = item.entity;
     const stateObj = hass.states[entityId];
     const name: string =
-      stateObj?.attributes.friendly_name ?? entityId.split('.')[1] ?? entityId;
+      item.name ?? stateObj?.attributes.friendly_name ?? entityId.split('.')[1] ?? entityId;
     const unavailable = isUnavailable(stateObj);
     const home = !unavailable && stateObj.state === 'home';
     const rawPicture = stateObj?.attributes.entity_picture;
+    // A hand-written icon is an explicit choice — it outranks the profile photo.
     const picture =
-      typeof rawPicture === 'string' && rawPicture && !this._broken.has(rawPicture)
+      !item.icon && typeof rawPicture === 'string' && rawPicture && !this._broken.has(rawPicture)
         ? rawPicture
         : undefined;
     const initial = (Array.from(name.trim())[0] ?? '?').toUpperCase();
     const zone = stateObj ? this._zone(hass, stateObj) : '—';
 
+    let face: TemplateResult;
+    if (picture) {
+      face = html`<img
+        src=${picture}
+        alt=${name}
+        loading="lazy"
+        @error=${() => this._onImgError(picture)}
+      />`;
+    } else if (item.icon) {
+      face = html`<ha-icon .icon=${item.icon}></ha-icon>`;
+    } else {
+      face = html`<span class="initial">${initial}</span>`;
+    }
+
     return html`
       <button
         class="cell ${unavailable ? 'unavailable' : ''}"
+        style=${item.color ? `--silk-accent:${item.color}` : nothing}
         aria-label=${`${name}: ${zone}`}
         title=${name}
         @click=${(ev: Event) => this._onPersonClick(ev, entityId)}
       >
-        <span class="avatar ${home ? 'home' : 'away'}">
-          ${picture
-            ? html`<img
-                src=${picture}
-                alt=${name}
-                loading="lazy"
-                @error=${() => this._onImgError(picture)}
-              />`
-            : html`<span class="initial">${initial}</span>`}
-        </span>
+        <span class="avatar ${home ? 'home' : 'away'}">${face}</span>
         <span class="zone">${zone}</span>
       </button>
     `;
@@ -140,9 +218,13 @@ export class SilkPresenceCard extends LitElement {
     const hass = this.hass;
     if (!config || !hass) return nothing;
 
-    const homeCount = config.entities.filter((id) => hass.states[id]?.state === 'home').length;
+    const people = this._people;
+    const homeCount = people.filter(
+      (item) => hass.states[item.entity]?.state === 'home'
+    ).length;
     // Accent from the first tracked person: presence green, theme-overridable.
-    const accent = accentFor(hass.states[config.entities[0]]);
+    const first = people[0];
+    const accent = accentFor(first ? hass.states[first.entity] : undefined, first?.color);
     const summary = html`
       <div class="summary">
         <span class="count ${homeCount > 0 ? 'some' : ''}">${homeCount}</span> home
@@ -158,7 +240,7 @@ export class SilkPresenceCard extends LitElement {
             </div>`
           : nothing}
         <div class="strip">
-          <div class="people">${config.entities.map((id) => this._renderPerson(id))}</div>
+          <div class="people">${people.map((item) => this._renderPerson(item))}</div>
           ${config.name ? nothing : summary}
         </div>
       </ha-card>
@@ -267,6 +349,9 @@ export class SilkPresenceCard extends LitElement {
       .avatar.away img {
         filter: grayscale(1);
         opacity: 0.7;
+      }
+      .avatar ha-icon {
+        --mdc-icon-size: 22px;
       }
       .initial {
         font-size: 18px;

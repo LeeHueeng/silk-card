@@ -4,7 +4,14 @@ import { HomeAssistant, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, moreInfo, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import {
+  EntityItem,
+  EntityListConfig,
+  normalizeEntityList,
+  entityIds,
+  hasItemDetail,
+  entityListSelector,
+} from '../shared/list';
 
 export const META = {
   type: 'silk-counter-card',
@@ -13,8 +20,8 @@ export const META = {
 };
 
 export interface SilkCounterCardConfig extends LovelaceCardConfig {
-  /** YAML-only: the entities to count across. */
-  entities: string[];
+  /** The entities to count across: bare ids, or {entity, name, icon} items. */
+  entities: EntityListConfig;
   /** What the count means, e.g. 'Lights on'. */
   name: string;
   icon?: string;
@@ -32,14 +39,91 @@ const DRAWER_PAD = 8;
 
 const EDITOR_TAG = 'silk-counter-card-editor';
 
-registerEditor(
-  EDITOR_TAG,
-  [
-    { name: 'name', required: true, selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
-  ],
-  { name: 'Name', icon: 'Icon' }
-);
+const LABELS: Record<string, string> = {
+  entities: '셀 엔티티',
+  name: '이름',
+  icon: '아이콘',
+  condition: '조건',
+  state: '상태 값',
+};
+
+/** Stable arrays: a new schema identity on every render would rebuild the form. */
+const SCHEMA_TAIL = [
+  { name: 'name', required: true, selector: { text: {} } },
+  { name: 'icon', selector: { icon: {} } },
+  {
+    name: 'condition',
+    selector: {
+      select: {
+        mode: 'dropdown',
+        options: [
+          { value: 'active', label: '켜짐/활성' },
+          { value: 'state', label: '상태 값 일치' },
+        ],
+      },
+    },
+  },
+  { name: 'state', selector: { text: {} } },
+];
+const SCHEMA_FULL = [entityListSelector('entities'), ...SCHEMA_TAIL];
+
+/**
+ * Hand-rolled rather than `registerEditor` because the schema depends on the
+ * config: a list carrying per-item name/icon/color cannot survive a round trip
+ * through the picker, so `entities` drops out of the schema entirely and ha-form
+ * leaves the key it never rendered exactly as it was.
+ */
+class SilkCounterCardEditor extends LitElement {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
+  @state() private _config?: SilkCounterCardConfig;
+
+  public setConfig(config: SilkCounterCardConfig): void {
+    this._config = config;
+  }
+
+  protected render(): TemplateResult | typeof nothing {
+    const config = this._config;
+    if (!this.hass || !config) return nothing;
+    const detail = hasItemDetail(config.entities);
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${config}
+        .schema=${detail ? SCHEMA_TAIL : SCHEMA_FULL}
+        .computeLabel=${(field: { name: string }) => LABELS[field.name] ?? field.name}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+      ${detail
+        ? html`<div class="note">
+            엔티티마다 이름·아이콘이 지정되어 있어 목록은 YAML에서만 편집할 수 있습니다.
+          </div>`
+        : nothing}
+    `;
+  }
+
+  private _valueChanged(ev: CustomEvent): void {
+    ev.stopPropagation();
+    this.dispatchEvent(
+      new CustomEvent('config-changed', {
+        detail: { config: ev.detail.value },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  static styles = css`
+    .note {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--secondary-text-color);
+    }
+  `;
+}
+
+if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkCounterCardEditor);
 
 @customElement('silk-counter-card')
 export class SilkCounterCard extends LitElement {
@@ -65,12 +149,17 @@ export class SilkCounterCard extends LitElement {
   }
 
   public setConfig(config: SilkCounterCardConfig): void {
+    // Both shapes are accepted; anything the normalizer drops was never a valid
+    // entity, and that still fails loudly rather than silently counting less.
+    const items = normalizeEntityList(config.entities);
     if (
       !Array.isArray(config.entities) ||
       config.entities.length === 0 ||
-      config.entities.some((id) => typeof id !== 'string')
+      items.length !== config.entities.length
     ) {
-      throw new Error('silk-counter-card: `entities` must be a non-empty list of entity ids');
+      throw new Error(
+        'silk-counter-card: `entities` must be a non-empty list of entity ids or {entity, name} items'
+      );
     }
     if (!config.name) {
       throw new Error('silk-counter-card: `name` is required');
@@ -90,7 +179,7 @@ export class SilkCounterCard extends LitElement {
   }
 
   public getCardSize(): number {
-    const count = this._expanded ? this._matchIds().length : 0;
+    const count = this._expanded ? this._matches().length : 0;
     return 1 + Math.ceil((count * ROW_HEIGHT) / 50);
   }
 
@@ -100,18 +189,18 @@ export class SilkCounterCard extends LitElement {
 
   protected willUpdate(changed: PropertyValues): void {
     // Nothing left to list — fold the drawer instead of animating to nowhere.
-    if (changed.has('hass') && this._expanded && this._matchIds().length === 0) {
+    if (changed.has('hass') && this._expanded && this._matches().length === 0) {
       this._expanded = false;
     }
   }
 
   /** Configured entities that currently satisfy the condition. */
-  private _matchIds(): string[] {
+  private _matches(): EntityItem[] {
     const config = this._config;
     const hass = this.hass;
     if (!config || !hass) return [];
-    return config.entities.filter((id) => {
-      const stateObj = hass.states[id];
+    return normalizeEntityList(config.entities).filter((item) => {
+      const stateObj = hass.states[item.entity];
       if (!stateObj) return false;
       if (config.condition === 'state') return stateObj.state === config.state;
       return isActive(stateObj);
@@ -119,7 +208,7 @@ export class SilkCounterCard extends LitElement {
   }
 
   private _onCardClick(): void {
-    if (this._matchIds().length === 0) {
+    if (this._matches().length === 0) {
       this._expanded = false;
       return;
     }
@@ -136,19 +225,20 @@ export class SilkCounterCard extends LitElement {
     const config = this._config;
     const hass = this.hass;
     if (!config || !hass) return nothing;
-    if (config.entities.every((id) => !hass.states[id])) {
+    const ids = entityIds(config.entities);
+    if (ids.every((id) => !hass.states[id])) {
       return html`
         <ha-card>
-          <div class="warning">Entities not found: ${config.entities.join(', ')}</div>
+          <div class="warning">Entities not found: ${ids.join(', ')}</div>
         </ha-card>
       `;
     }
 
-    const matches = this._matchIds();
+    const matches = this._matches();
     const count = matches.length;
-    const total = config.entities.length;
-    const allUnavailable = config.entities.every((id) => isUnavailable(hass.states[id]));
-    const accent = accentFor(hass.states[config.entities[0]], config.color);
+    const total = ids.length;
+    const allUnavailable = ids.every((id) => isUnavailable(hass.states[id]));
+    const accent = accentFor(hass.states[ids[0]], config.color);
     const expandable = count > 0;
     const expanded = this._expanded && expandable;
     const drawerMax = expanded ? count * ROW_HEIGHT + DRAWER_PAD : 0;
@@ -179,12 +269,20 @@ export class SilkCounterCard extends LitElement {
         </div>
         <div class="drawer" style="max-height:${drawerMax}px">
           <div class="rows">
-            ${matches.map((id) => {
-              const stateObj = hass.states[id];
+            ${matches.map((item) => {
+              const stateObj = hass.states[item.entity];
+              // Per-item detail wins over the entity's own name and icon.
+              const rowName = item.name ?? stateObj.attributes.friendly_name ?? item.entity;
               return html`
-                <button class="row" @click=${(ev: Event) => this._onRowClick(ev, id)}>
-                  <ha-state-icon .hass=${hass} .stateObj=${stateObj}></ha-state-icon>
-                  <span class="row-name">${stateObj.attributes.friendly_name ?? id}</span>
+                <button
+                  class="row"
+                  style=${item.color ? `--silk-accent:${item.color}` : nothing}
+                  @click=${(ev: Event) => this._onRowClick(ev, item.entity)}
+                >
+                  ${item.icon
+                    ? html`<ha-icon .icon=${item.icon}></ha-icon>`
+                    : html`<ha-state-icon .hass=${hass} .stateObj=${stateObj}></ha-state-icon>`}
+                  <span class="row-name">${rowName}</span>
                   <span class="row-state">${stateText(hass, stateObj)}</span>
                 </button>
               `;
@@ -282,7 +380,8 @@ export class SilkCounterCard extends LitElement {
       .row:hover {
         background: rgba(var(--rgb-primary-text-color, 127, 127, 127), 0.05);
       }
-      .row ha-state-icon {
+      .row ha-state-icon,
+      .row ha-icon {
         flex: none;
         --mdc-icon-size: 18px;
         color: var(--silk-accent);

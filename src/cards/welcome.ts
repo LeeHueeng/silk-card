@@ -17,6 +17,8 @@ export interface SilkWelcomeCardConfig extends LovelaceCardConfig {
   name?: string;
   /** Numeric sensor rendered as a readout segment (e.g. indoor temperature). */
   temperature?: string;
+  /** Icon for that readout. `false` hides it. Defaults to mdi:home-thermometer. */
+  temperature_icon?: string | false;
   /** YAML-only: entities counted into the "N devices on" segment. */
   count_active?: string[];
   /** Weather entity for the condition icon + outdoor temperature. */
@@ -151,7 +153,11 @@ export class SilkWelcomeCard extends LitElement {
     `;
   }
 
-  /** Numeric readout of the configured temperature entity. */
+  /**
+   * Numeric readout of the configured temperature entity. It carries an icon
+   * of its own so it never reads as a second outdoor number next to the
+   * weather segment — this one is the house.
+   */
   private _renderTemperature(): TemplateResult | typeof nothing {
     const entityId = this._config?.temperature;
     const stateObj = entityId ? this.hass?.states[entityId] : undefined;
@@ -160,7 +166,13 @@ export class SilkWelcomeCard extends LitElement {
     if (!Number.isFinite(value)) return nothing;
     const unit = stateObj.attributes.unit_of_measurement;
     const text = formatNumber(this.hass, stateObj.entity_id, value);
-    return html`<span class="seg">${unit ? `${text}${condenseUnit(String(unit))}` : text}</span>`;
+    const icon = this._config?.temperature_icon ?? 'mdi:home-thermometer';
+    return html`
+      <span class="seg">
+        ${icon === false ? nothing : html`<ha-icon .icon=${icon}></ha-icon>`}
+        <span>${unit ? `${text}${condenseUnit(String(unit))}` : text}</span>
+      </span>
+    `;
   }
 
   /** "N devices on" over count_active; accent when anything is on. Not a control. */

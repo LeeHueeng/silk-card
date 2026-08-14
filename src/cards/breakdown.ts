@@ -4,7 +4,12 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import {
+  EntityItem,
+  entityListSelector,
+  hasItemDetail,
+  normalizeEntityList,
+} from '../shared/list';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -14,15 +19,15 @@ export const META = {
 };
 
 /** One tracked device: an energy-today sensor plus optional presentation. */
-export interface BreakdownDevice {
+export interface BreakdownDevice extends EntityItem {
   entity: string;
   name?: string;
   icon?: string;
 }
 
 export interface SilkBreakdownCardConfig extends LovelaceCardConfig {
-  /** The devices to rank. YAML-only: a list of {entity, name?, icon?}. */
-  devices: BreakdownDevice[];
+  /** The devices to rank: bare ids from the picker, or {entity, name?, icon?}. */
+  devices: (string | BreakdownDevice)[];
   /** Whole-house energy-today sensor; its remainder becomes the "Other" bar. */
   unaccounted?: string;
   /** Header label, defaults to "Energy today". */
@@ -40,19 +45,85 @@ const REMAINDER_EPSILON = 0.005;
 
 const EDITOR_TAG = 'silk-breakdown-card-editor';
 
-// Devices stay YAML-only — a nested list of entity + name + icon pickers would
-// dwarf the card it configures. The editor covers the two single choices.
-registerEditor(
-  EDITOR_TAG,
-  [
-    { name: 'name', selector: { text: {} } },
-    {
-      name: 'unaccounted',
-      selector: { entity: { domain: ['sensor'], device_class: ['energy'] } },
-    },
-  ],
-  { name: 'Name', unaccounted: 'Whole-house total (adds "Other")' }
-);
+const EDITOR_LABELS: Record<string, string> = {
+  devices: '기기 센서',
+  unaccounted: '집 전체 센서',
+  name: '이름',
+};
+
+/**
+ * The schema depends on the config, so this card hosts its own ha-form rather
+ * than using registerEditor's fixed schema: when the YAML gives devices their
+ * own name/icon, `devices` is left out of the schema entirely and that
+ * hand-written list rides through the round trip untouched.
+ */
+function breakdownSchema(config: SilkBreakdownCardConfig): Record<string, unknown>[] {
+  const schema: Record<string, unknown>[] = [];
+  if (!hasItemDetail(config.devices)) schema.push(entityListSelector('devices', ['sensor']));
+  schema.push(
+    { name: 'unaccounted', selector: { entity: { domain: ['sensor'] } } },
+    { name: 'name', selector: { text: {} } }
+  );
+  return schema;
+}
+
+if (!customElements.get(EDITOR_TAG)) {
+  class SilkBreakdownCardEditor extends LitElement {
+    @property({ attribute: false }) public hass?: HomeAssistant;
+
+    @state() private _config?: SilkBreakdownCardConfig;
+
+    public setConfig(config: SilkBreakdownCardConfig): void {
+      this._config = config;
+    }
+
+    protected render(): TemplateResult | typeof nothing {
+      const config = this._config;
+      if (!this.hass || !config) return nothing;
+      const detailed = hasItemDetail(config.devices);
+      return html`
+        <ha-form
+          .hass=${this.hass}
+          .data=${config}
+          .schema=${breakdownSchema(config)}
+          .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
+          @value-changed=${this._valueChanged}
+        ></ha-form>
+        ${detailed
+          ? html`<p class="note">
+              기기 ${normalizeEntityList(config.devices).length}개에 이름·아이콘이 지정되어 있어
+              목록은 YAML에서만 편집할 수 있습니다. 다른 설정은 여기서 바꿔도 목록은 그대로
+              유지됩니다.
+            </p>`
+          : nothing}
+      `;
+    }
+
+    private _valueChanged(ev: CustomEvent): void {
+      ev.stopPropagation();
+      // Merged onto the existing config so keys the schema left out — a
+      // hand-written `devices` list, `type` — survive the round trip.
+      const config = { ...this._config, ...(ev.detail.value as Record<string, unknown>) };
+      this.dispatchEvent(
+        new CustomEvent('config-changed', {
+          detail: { config },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+
+    static styles = css`
+      .note {
+        margin: 10px 4px 0;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--secondary-text-color);
+      }
+    `;
+  }
+  customElements.define(EDITOR_TAG, SilkBreakdownCardEditor);
+}
 
 /** A resolved bar: `value` is null when the sensor can't be read. */
 interface BreakdownRow {
@@ -82,6 +153,9 @@ export class SilkBreakdownCard extends LitElement {
 
   @state() private _config?: SilkBreakdownCardConfig;
 
+  /** Both config shapes, normalized to objects. */
+  private _devices: EntityItem[] = [];
+
   /** False for the first paint so the bars grow in from zero on mount. */
   @state() private _drawn = false;
 
@@ -92,10 +166,9 @@ export class SilkBreakdownCard extends LitElement {
         hass.states[id].attributes.device_class === 'energy' &&
         Number.isFinite(Number(hass.states[id].state))
     );
-    return {
-      type: 'custom:silk-breakdown-card',
-      devices: ids.slice(0, 4).map((entity) => ({ entity })),
-    };
+    // Bare ids: the shape the picker writes, so the editor opens on a list it
+    // can edit rather than one it has to protect.
+    return { type: 'custom:silk-breakdown-card', devices: ids.slice(0, 4) };
   }
 
   public static async getConfigElement(): Promise<HTMLElement> {
@@ -105,22 +178,26 @@ export class SilkBreakdownCard extends LitElement {
   public setConfig(config: SilkBreakdownCardConfig): void {
     if (!Array.isArray(config.devices) || config.devices.length === 0) {
       throw new Error(
-        'silk-breakdown-card: `devices` must be a non-empty list of {entity, name?, icon?}'
+        'silk-breakdown-card: `devices` must be a non-empty list of entity ids or {entity, name?, icon?}'
       );
     }
+    // Either shape is legal — 'sensor.a' from the picker, {entity, …} from
+    // YAML — but an entry without a usable entity id is still an error.
     for (const device of config.devices) {
-      if (!device || typeof device.entity !== 'string' || !device.entity) {
+      const entity = typeof device === 'string' ? device : device?.entity;
+      if (typeof entity !== 'string' || !entity.includes('.')) {
         throw new Error('silk-breakdown-card: every device needs an `entity`');
       }
     }
     if (config.unaccounted !== undefined && typeof config.unaccounted !== 'string') {
       throw new Error('silk-breakdown-card: `unaccounted` must be a single entity id');
     }
+    this._devices = normalizeEntityList(config.devices);
     this._config = config;
   }
 
   public getCardSize(): number {
-    const devices = this._config?.devices.length ?? 1;
+    const devices = this._devices.length || 1;
     return 2 + Math.ceil(Math.min(devices + 1, 12) / 2);
   }
 
@@ -140,7 +217,7 @@ export class SilkBreakdownCard extends LitElement {
   /** Device rows sorted by value (unreadable ones sink), plus "Other". */
   private _rows(hass: HomeAssistant): BreakdownRow[] {
     const config = this._config!;
-    const rows: BreakdownRow[] = config.devices.map((device) => {
+    const rows: BreakdownRow[] = this._devices.map((device) => {
       const stateObj = hass.states[device.entity];
       return {
         entity: device.entity,
@@ -182,7 +259,7 @@ export class SilkBreakdownCard extends LitElement {
 
   private _unit(hass: HomeAssistant): string {
     const config = this._config!;
-    for (const id of [...config.devices.map((d) => d.entity), config.unaccounted]) {
+    for (const id of [...this._devices.map((d) => d.entity), config.unaccounted]) {
       const unit = id ? hass.states[id]?.attributes.unit_of_measurement : undefined;
       if (typeof unit === 'string' && unit) return unit;
     }
@@ -192,7 +269,8 @@ export class SilkBreakdownCard extends LitElement {
   private _onCardClick(): void {
     const config = this._config;
     if (!config) return;
-    moreInfo(this, config.unaccounted ?? config.devices[0].entity);
+    const target = config.unaccounted ?? this._devices[0]?.entity;
+    if (target) moreInfo(this, target);
   }
 
   private _onRowClick(ev: Event, entityId: string): void {
@@ -252,10 +330,11 @@ export class SilkBreakdownCard extends LitElement {
     const hass = this.hass;
     if (!config || !hass) return nothing;
 
-    const known = config.devices.filter((d) => hass.states[d.entity]);
+    const first = this._devices[0]?.entity ?? '';
+    const known = this._devices.filter((d) => hass.states[d.entity]);
     if (!known.length && !(config.unaccounted && hass.states[config.unaccounted])) {
       return html`<ha-card>
-        <div class="warning">Entity not found: ${config.devices[0].entity}</div>
+        <div class="warning">Entity not found: ${first || '—'}</div>
       </ha-card>`;
     }
 
@@ -265,8 +344,8 @@ export class SilkBreakdownCard extends LitElement {
     const max = values.length ? Math.max(...values) : 0;
     const total = values.reduce((sum, v) => sum + v, 0);
     const unavailable = values.length === 0;
-    const deviceCount = config.devices.length;
-    const accent = accentFor(hass.states[config.devices[0].entity], config.color);
+    const deviceCount = this._devices.length;
+    const accent = accentFor(hass.states[first], config.color);
     const ranked = rows.filter((row) => !row.other).length;
     const iconColumn = rows.some((row) => !!row.icon);
 
@@ -284,7 +363,7 @@ export class SilkBreakdownCard extends LitElement {
           <div class="trailing">
             <span class="value"
               >${values.length
-                ? formatNumber(hass, config.unaccounted ?? config.devices[0].entity, total)
+                ? formatNumber(hass, config.unaccounted ?? first, total)
                 : '—'}</span
             >
             <span class="unit">${unit}</span>

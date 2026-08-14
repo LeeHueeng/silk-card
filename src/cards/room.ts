@@ -11,7 +11,14 @@ import {
   haptic,
 } from '../shared/service';
 import { accentFor } from '../shared/color';
-import { registerEditor } from '../shared/editor';
+import {
+  EntityItem,
+  EntityListConfig,
+  entityIds,
+  entityListSelector,
+  hasItemDetail,
+  normalizeEntityList,
+} from '../shared/list';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -27,37 +34,103 @@ export interface RoomCardConfig extends LovelaceCardConfig {
   icon?: string;
   /** Accent override; otherwise derived from the first toggle entity. */
   color?: string;
-  /** Up to 3 numeric sensors rendered as compact readouts (21.3° · 45% · 620W). */
-  sensors?: string[];
-  /** Up to 4 controllable entities rendered as quick-toggle icon buttons. */
-  toggles?: string[];
+  /**
+   * Up to 3 numeric sensors rendered as compact readouts (21.3° · 45% · 620W).
+   * Plain ids from the picker, or `{entity, name, icon}` for a leading glyph
+   * and a tooltip.
+   */
+  sensors?: EntityListConfig;
+  /**
+   * Up to 4 controllable entities rendered as quick-toggle icon buttons.
+   * `{entity, name, icon, color}` overrides that button's label/glyph/accent.
+   */
+  toggles?: EntityListConfig;
   /** Entities counted into the "N on" segment of the state line. */
-  count_active?: string[];
+  count_active?: EntityListConfig;
   /** Dashboard path to navigate to on card tap (otherwise more-info). */
   navigation_path?: string;
 }
-
-const EDITOR_TAG = 'silk-room-card-editor';
-
-registerEditor(
-  EDITOR_TAG,
-  [
-    { name: 'name', required: true, selector: { text: {} } },
-    { name: 'icon', selector: { icon: {} } },
-    { name: 'navigation_path', selector: { text: {} } },
-  ],
-  {
-    name: 'Name',
-    icon: 'Icon',
-    navigation_path: 'Navigation path',
-  },
-  { icon: 'mdi:sofa' }
-);
 
 const DEFAULT_ICON = 'mdi:sofa';
 const MAX_SENSORS = 3;
 const MAX_TOGGLES = 4;
 const OPTIMISTIC_TIMEOUT_MS = 2000;
+
+/** Domains that can actually be toggled from a quick-control button. */
+const TOGGLE_DOMAINS = ['switch', 'light', 'fan', 'cover', 'media_player', 'lock'];
+
+const EDITOR_TAG = 'silk-room-card-editor';
+
+const EDITOR_LABELS: Record<string, string> = {
+  name: '이름',
+  icon: '아이콘',
+  sensors: '표시할 센서',
+  toggles: '조작 버튼',
+  count_active: '켜짐 개수 집계',
+  navigation_path: '이동 경로',
+  color: '강조 색상',
+};
+
+const YAML_ONLY_NOTE = 'YAML에 항목별 설정이 있어 편집기에서 건드리지 않습니다';
+
+/**
+ * The schema depends on the config, so this card owns its editor element
+ * instead of using the fixed-schema `registerEditor` helper: a list that
+ * carries hand-written per-item detail gets a read-only note instead of a
+ * picker, and ha-form passes untouched every key its schema never mentions.
+ */
+function roomSchema(config: RoomCardConfig): Record<string, unknown>[] {
+  const listField = (name: string, domains?: string[]): Record<string, unknown> =>
+    hasItemDetail(config[name] as EntityListConfig)
+      ? { name, type: 'constant', value: YAML_ONLY_NOTE }
+      : entityListSelector(name, domains);
+
+  return [
+    { name: 'name', required: true, selector: { text: {} } },
+    { name: 'icon', selector: { icon: {} } },
+    listField('sensors', ['sensor']),
+    listField('toggles', TOGGLE_DOMAINS),
+    listField('count_active'),
+    { name: 'navigation_path', selector: { text: {} } },
+    { name: 'color', selector: { text: {} } },
+  ];
+}
+
+class SilkRoomCardEditor extends LitElement {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
+  @state() private _config?: RoomCardConfig;
+
+  public setConfig(config: RoomCardConfig): void {
+    this._config = config;
+  }
+
+  protected render(): TemplateResult | typeof nothing {
+    if (!this.hass || !this._config) return nothing;
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${{ icon: DEFAULT_ICON, ...this._config }}
+        .schema=${roomSchema(this._config)}
+        .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+    `;
+  }
+
+  private _valueChanged(ev: CustomEvent): void {
+    ev.stopPropagation();
+    this.dispatchEvent(
+      new CustomEvent('config-changed', {
+        detail: { config: ev.detail.value },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+}
+
+if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkRoomCardEditor);
 
 /** °C/°F condense to a bare degree sign; anything else renders as-is. */
 function condenseUnit(unit: unknown): string {
@@ -88,8 +161,8 @@ export class SilkRoomCard extends LitElement {
   /** Per-entity optimistic targets (absent key = trust the real state). */
   @state() private _optimistic: Record<string, boolean> = {};
 
-  private _sensors: string[] = [];
-  private _toggles: string[] = [];
+  private _sensors: EntityItem[] = [];
+  private _toggles: EntityItem[] = [];
   private _countIds: string[] = [];
 
   /** last_updated snapshots at toggle time; a newer stamp clears the override. */
@@ -108,10 +181,16 @@ export class SilkRoomCard extends LitElement {
     if (!config.name) {
       throw new Error('silk-room-card: `name` is required');
     }
+    for (const key of ['sensors', 'toggles', 'count_active'] as const) {
+      if (config[key] !== undefined && !Array.isArray(config[key])) {
+        throw new Error(`silk-room-card: \`${key}\` must be a list of entities`);
+      }
+    }
     this._config = config;
-    this._sensors = (config.sensors ?? []).slice(0, MAX_SENSORS);
-    this._toggles = (config.toggles ?? []).slice(0, MAX_TOGGLES);
-    this._countIds = config.count_active ?? [];
+    // Either shape — ['sensor.a'] from the picker, or [{entity, name, icon}].
+    this._sensors = normalizeEntityList(config.sensors).slice(0, MAX_SENSORS);
+    this._toggles = normalizeEntityList(config.toggles).slice(0, MAX_TOGGLES);
+    this._countIds = entityIds(config.count_active);
     this._clearAllOptimistic();
   }
 
@@ -182,7 +261,7 @@ export class SilkRoomCard extends LitElement {
       );
       return;
     }
-    const target = this._sensors[0] ?? this._toggles[0];
+    const target = this._sensors[0]?.entity ?? this._toggles[0]?.entity;
     if (target) moreInfo(this, target);
   }
 
@@ -209,14 +288,26 @@ export class SilkRoomCard extends LitElement {
   private _sensorSegments(): TemplateResult[] {
     const hass = this.hass!;
     const out: TemplateResult[] = [];
-    for (const id of this._sensors) {
-      const stateObj = hass.states[id];
+    for (const item of this._sensors) {
+      const stateObj = hass.states[item.entity];
       if (!stateObj) continue;
       const value = Number(stateObj.state);
       const unit = Number.isFinite(value)
         ? condenseUnit(stateObj.attributes.unit_of_measurement)
         : '';
-      out.push(html`<span class="reading">${formatNumber(hass, id, value)}${unit}</span>`);
+      // A hand-written name stays a tooltip — the readout line has no room for
+      // labels — while an icon renders as a small glyph in front of the value.
+      const glyph = item.icon
+        ? html`<ha-icon class="ricon" .icon=${item.icon}></ha-icon>`
+        : nothing;
+      const text = `${formatNumber(hass, item.entity, value)}${unit}`;
+      out.push(
+        html`<span
+          class="reading ${item.icon ? 'ico' : ''}"
+          title=${item.name ?? nothing}
+          >${glyph}${text}</span
+        >`
+      );
     }
     return out;
   }
@@ -229,8 +320,9 @@ export class SilkRoomCard extends LitElement {
     return n;
   }
 
-  private _renderToggle(entityId: string): TemplateResult {
+  private _renderToggle(item: EntityItem): TemplateResult {
     const hass = this.hass!;
+    const entityId = item.entity;
     const stateObj = hass.states[entityId];
     const disabled = !stateObj || isUnavailable(stateObj);
     const override: boolean | undefined = this._optimistic[entityId];
@@ -241,19 +333,24 @@ export class SilkRoomCard extends LitElement {
       stateObj && override !== undefined
         ? { ...stateObj, state: predictedState(domainOf(entityId), override) }
         : stateObj;
-    const label = stateObj?.attributes.friendly_name ?? entityId;
+    const label = item.name ?? stateObj?.attributes.friendly_name ?? entityId;
+    // Per-item detail wins over the domain defaults when YAML supplies it.
+    const glyph = item.icon
+      ? html`<ha-icon .icon=${item.icon}></ha-icon>`
+      : displayObj
+        ? html`<ha-state-icon .hass=${hass} .stateObj=${displayObj}></ha-state-icon>`
+        : html`<ha-icon icon="mdi:help-circle-outline"></ha-icon>`;
     return html`
       <button
         class="tbtn ${active ? 'on' : ''}"
-        style="--silk-accent:${accentFor(displayObj)}"
+        style="--silk-accent:${accentFor(displayObj, item.color)}"
         .disabled=${disabled}
         aria-label=${`Toggle ${label}`}
         aria-pressed=${active ? 'true' : 'false'}
+        title=${item.name ?? nothing}
         @click=${(ev: Event) => this._onToggleClick(ev, entityId)}
       >
-        ${displayObj
-          ? html`<ha-state-icon .hass=${hass} .stateObj=${displayObj}></ha-state-icon>`
-          : html`<ha-icon icon="mdi:help-circle-outline"></ha-icon>`}
+        ${glyph}
       </button>
     `;
   }
@@ -263,12 +360,15 @@ export class SilkRoomCard extends LitElement {
     const hass = this.hass;
     if (!config || !hass) return nothing;
 
-    const firstToggle = this._toggles.length ? hass.states[this._toggles[0]] : undefined;
-    const accent = accentFor(firstToggle, config.color);
+    const first = this._toggles[0];
+    const accent = accentFor(
+      first ? hass.states[first.entity] : undefined,
+      config.color ?? first?.color
+    );
 
     const activeCount = this._countIds.length ? this._activeCount() : 0;
     const roomActive =
-      activeCount > 0 || this._toggles.some((id) => this._displayActive(id));
+      activeCount > 0 || this._toggles.some((item) => this._displayActive(item.entity));
 
     const parts: TemplateResult[] = [];
     for (const segment of this._sensorSegments()) {
@@ -292,7 +392,9 @@ export class SilkRoomCard extends LitElement {
           ${parts.length ? html`<div class="state">${parts}</div>` : nothing}
         </div>
         ${this._toggles.length
-          ? html`<div class="trailing">${this._toggles.map((id) => this._renderToggle(id))}</div>`
+          ? html`<div class="trailing">
+              ${this._toggles.map((item) => this._renderToggle(item))}
+            </div>`
           : nothing}
       </ha-card>
     `;
@@ -315,6 +417,18 @@ export class SilkRoomCard extends LitElement {
       }
       .count.on {
         color: var(--silk-accent);
+      }
+      /* Only readouts that opted into an icon become flex rows — a bare number
+         keeps the plain inline flow it has always had. */
+      .reading.ico {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        vertical-align: -1px;
+      }
+      .reading .ricon {
+        --mdc-icon-size: 13px;
+        color: var(--secondary-text-color);
       }
       .tbtn {
         flex: none;

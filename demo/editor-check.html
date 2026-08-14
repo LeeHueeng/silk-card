@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>editor check</title></head>
+<body>
+<pre id="out">running</pre>
+<script type="module">
+import '../dist/silk-card.js';
+
+const out = document.getElementById('out');
+const log = (m) => { out.textContent += m + '\n'; };
+
+// ha-form 자리에 스키마만 보관하는 껍데기를 심는다.
+customElements.define('ha-form', class extends HTMLElement {
+  set schema(v) { this._schema = v; }
+  get schema() { return this._schema; }
+  set data(v) { this._data = v; }
+  set hass(v) {}
+  set computeLabel(fn) { this._label = fn; }
+  get computeLabel() { return this._label; }
+});
+
+const CASES = [
+  ['chips (아이디 목록)', 'silk-chips-card', { chips: ['sensor.a', 'sensor.b'] }],
+  ['chips (이름 지정)', 'silk-chips-card', { chips: [{ entity: 'sensor.a', name: '거실' }] }],
+  ['breakdown', 'silk-breakdown-card', { devices: ['sensor.a', 'sensor.b'] }],
+  ['launcher', 'silk-launcher-card', { items: ['switch.a', 'light.b'] }],
+  ['counter', 'silk-counter-card', { name: '켜진 등', entities: ['light.a', 'light.b'] }],
+  ['room', 'silk-room-card', { name: '침실', sensors: ['sensor.a'], toggles: ['switch.b'] }],
+  ['presence', 'silk-presence-card', { entities: ['person.a'] }],
+  ['bill', 'silk-bill-card', { devices: ['sensor.e1', 'sensor.e2'] }],
+  ['device', 'silk-device-card', { devices: ['sensor.bat1'] }],
+  ['openings', 'silk-openings-card', { entities: ['binary_sensor.d1'] }],
+];
+
+const hass = { states: {}, locale: { language: 'ko' }, callService: async () => {}, callWS: async () => ({}) };
+
+function findForm(root, depth = 0) {
+  if (!root || depth > 4) return null;
+  const direct = root.querySelector?.('ha-form');
+  if (direct) return direct;
+  for (const el of root.querySelectorAll?.('*') ?? []) {
+    if (el.shadowRoot) {
+      const found = findForm(el.shadowRoot, depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+out.textContent = '';
+for (const [label, tag, config] of CASES) {
+  const Card = customElements.get(tag);
+  if (!Card) { log(`${label}: 요소 없음`); continue; }
+  if (typeof Card.getConfigElement !== 'function') { log(`${label}: 편집기 없음 ❌`); continue; }
+
+  const editor = await Card.getConfigElement();
+  document.body.appendChild(editor);
+  try { editor.setConfig({ type: 'custom:' + tag, ...config }); } catch (e) { log(`${label}: setConfig 실패 — ${e.message}`); continue; }
+  editor.hass = hass;
+  await new Promise((r) => setTimeout(r, 200));
+
+  const form = findForm(editor.shadowRoot ?? editor);
+  if (!form) { log(`${label}: ha-form 렌더 안 됨`); continue; }
+  const fields = (form.schema || []).map((f) => {
+    const lb = form.computeLabel ? form.computeLabel(f) : f.name;
+    const kind = f.selector ? Object.keys(f.selector)[0] : (f.type || 'note');
+    const multi = f.selector?.entity?.multiple ? '·다중' : '';
+    return `${lb}(${kind}${multi})`;
+  });
+  log(`${label}: ${fields.join(' | ')}`);
+}
+log('done');
+</script>
+</body>
+</html>

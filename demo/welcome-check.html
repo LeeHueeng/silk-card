@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>welcome card check</title>
+<style>
+  :root {
+    --primary-color:#4aa8ff; --rgb-primary-color:74,168,255;
+    --primary-text-color:#e1e5ea; --rgb-primary-text-color:225,229,234;
+    --secondary-text-color:#9aa4b2; --card-background-color:#1c1f26;
+  }
+  body { margin:0; background:#12141a; padding:24px; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
+  .slot { width: 560px; height: 72px; }
+</style>
+</head>
+<body>
+<div class="slot"><silk-welcome-card id="w"></silk-welcome-card></div>
+<script type="module">
+import '../dist/silk-card.js';
+import { MDI_PATHS } from './icons.js';
+
+const EXTRA = { 'mdi:home-thermometer': 'M11.5 2 3 10h2v9a1 1 0 0 0 1 1h5v-6h3v6h5a1 1 0 0 0 1-1v-9h2L11.5 2Z' };
+class MdiBase extends HTMLElement {
+  constructor(){ super(); this.attachShadow({mode:'open'}); }
+  renderIcon(icon){
+    const d = MDI_PATHS[icon] ?? EXTRA[icon] ?? MDI_PATHS['mdi:eye'];
+    this.shadowRoot.innerHTML =
+      '<style>:host{display:block;line-height:0}svg{width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px);fill:currentColor;display:block}</style>' +
+      `<svg viewBox="0 0 24 24"><path d="${d}"/></svg>`;
+  }
+}
+if (!customElements.get('ha-icon')) customElements.define('ha-icon', class extends MdiBase {
+  set icon(v){ this._i=v; this.renderIcon(v); }
+  connectedCallback(){ if(!this.shadowRoot.innerHTML) this.renderIcon(this.getAttribute('icon') ?? this._i); }
+});
+if (!customElements.get('ha-card')) customElements.define('ha-card', class extends HTMLElement {
+  connectedCallback(){ this.style.cssText += ';display:flex;background:var(--card-background-color);border-radius:16px;'; }
+});
+
+const now = new Date().toISOString();
+const E = (id, state, attributes={}) => [id, { entity_id:id, state:String(state), attributes, last_changed:now, last_updated:now }];
+const hass = {
+  locale:{language:'ko'}, entities:{},
+  states: Object.fromEntries([
+    E('weather.home','partlycloudy',{ friendly_name:'집 날씨', temperature:31.8 }),
+    E('sensor.room_temp','32.1',{ friendly_name:'방 온도', unit_of_measurement:'°C', device_class:'temperature' }),
+    E('switch.a','on',{}), E('switch.b','off',{}),
+  ]),
+  callService: async()=>{}, callWS: async()=>({}),
+};
+
+await customElements.whenDefined('silk-welcome-card');
+const el = document.getElementById('w');
+el.setConfig({
+  type:'custom:silk-welcome-card', name:'Hueeng',
+  weather:'weather.home', temperature:'sensor.room_temp',
+  count_active:['switch.a','switch.b'],
+});
+el.hass = hass;
+</script>
+</body>
+</html>

@@ -4,6 +4,12 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { isActive, isUnavailable, moreInfo, haptic, stateText } from '../shared/service';
 import { accentFor } from '../shared/color';
+import {
+  EntityItem,
+  entityListSelector,
+  hasItemDetail,
+  normalizeEntityList,
+} from '../shared/list';
 import { formatNumber } from '../format';
 
 export const META = {
@@ -12,26 +18,103 @@ export const META = {
   description: 'A dense strip of glanceable pills.',
 };
 
-export type ChipUserConfig =
-  | string
-  | {
-      entity: string;
-      name?: string;
-      icon?: string;
-      color?: string;
-    };
+/** A chip: a bare entity id from the picker, or YAML with per-chip detail. */
+export type ChipUserConfig = string | EntityItem;
 
-/** YAML-only card: no visual editor — configure `chips` in YAML. */
 export interface SilkChipsCardConfig extends LovelaceCardConfig {
   chips: ChipUserConfig[];
   alignment?: 'start' | 'center';
 }
 
-interface ChipConfig {
-  entity: string;
-  name?: string;
-  icon?: string;
-  color?: string;
+type ChipConfig = EntityItem;
+
+const EDITOR_TAG = 'silk-chips-card-editor';
+
+const EDITOR_LABELS: Record<string, string> = {
+  chips: '칩 엔티티',
+  alignment: '정렬',
+};
+
+/**
+ * The schema depends on the config, so this card hosts its own ha-form rather
+ * than using registerEditor's fixed schema: when the YAML carries per-chip
+ * name/icon/color, `chips` is left out of the schema entirely and the
+ * hand-written list rides through the round trip untouched.
+ */
+function chipsSchema(config: SilkChipsCardConfig): Record<string, unknown>[] {
+  const schema: Record<string, unknown>[] = [];
+  if (!hasItemDetail(config.chips)) schema.push(entityListSelector('chips'));
+  schema.push({
+    name: 'alignment',
+    selector: {
+      select: {
+        mode: 'dropdown',
+        options: [
+          { value: 'start', label: '왼쪽' },
+          { value: 'center', label: '가운데' },
+        ],
+      },
+    },
+  });
+  return schema;
+}
+
+if (!customElements.get(EDITOR_TAG)) {
+  class SilkChipsCardEditor extends LitElement {
+    @property({ attribute: false }) public hass?: HomeAssistant;
+
+    @state() private _config?: SilkChipsCardConfig;
+
+    public setConfig(config: SilkChipsCardConfig): void {
+      this._config = config;
+    }
+
+    protected render(): TemplateResult | typeof nothing {
+      const config = this._config;
+      if (!this.hass || !config) return nothing;
+      const detailed = hasItemDetail(config.chips);
+      return html`
+        <ha-form
+          .hass=${this.hass}
+          .data=${{ alignment: 'start', ...config }}
+          .schema=${chipsSchema(config)}
+          .computeLabel=${(s: { name: string }) => EDITOR_LABELS[s.name] ?? s.name}
+          @value-changed=${this._valueChanged}
+        ></ha-form>
+        ${detailed
+          ? html`<p class="note">
+              칩 ${normalizeEntityList(config.chips).length}개에 이름·아이콘·색상이 지정되어 있어
+              목록은 YAML에서만 편집할 수 있습니다. 다른 설정은 여기서 바꿔도 목록은 그대로
+              유지됩니다.
+            </p>`
+          : nothing}
+      `;
+    }
+
+    private _valueChanged(ev: CustomEvent): void {
+      ev.stopPropagation();
+      // Merged onto the existing config so keys the schema left out — a
+      // hand-written `chips` list, `type` — survive the round trip.
+      const config = { ...this._config, ...(ev.detail.value as Record<string, unknown>) };
+      this.dispatchEvent(
+        new CustomEvent('config-changed', {
+          detail: { config },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+
+    static styles = css`
+      .note {
+        margin: 10px 4px 0;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--secondary-text-color);
+      }
+    `;
+  }
+  customElements.define(EDITOR_TAG, SilkChipsCardEditor);
 }
 
 /** '°C'/'°F' → '°'; everything else trimmed and appended without a space. */
@@ -55,17 +138,24 @@ export class SilkChipsCard extends LitElement {
     return { type: 'custom:silk-chips-card', chips };
   }
 
+  public static async getConfigElement(): Promise<HTMLElement> {
+    return document.createElement(EDITOR_TAG);
+  }
+
   public setConfig(config: SilkChipsCardConfig): void {
     if (!Array.isArray(config.chips) || config.chips.length === 0) {
       throw new Error('silk-chips-card: `chips` must be a non-empty list');
     }
-    this._chips = config.chips.map((chip, i) => {
-      const norm: ChipConfig = typeof chip === 'string' ? { entity: chip } : { ...chip };
-      if (!norm.entity || typeof norm.entity !== 'string') {
-        throw new Error(`silk-chips-card: chips[${i}] needs an \`entity\``);
-      }
-      return norm;
+    // Both shapes are legal — 'sensor.a' from the picker, {entity, name?, …}
+    // from YAML — but an entry without a usable entity id is still an error.
+    const bad = config.chips.findIndex((chip) => {
+      const entity = typeof chip === 'string' ? chip : chip?.entity;
+      return typeof entity !== 'string' || !entity.includes('.');
     });
+    if (bad !== -1) {
+      throw new Error(`silk-chips-card: chips[${bad}] needs an \`entity\` (e.g. sensor.porch)`);
+    }
+    this._chips = normalizeEntityList(config.chips);
     this._config = config;
   }
 

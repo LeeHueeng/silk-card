@@ -1,7 +1,7 @@
 {
   "name": "silk-card",
-  "version": "0.6.0",
-  "description": "Buttery-smooth card suite for Home Assistant — 191 cards, one design language",
+  "version": "0.8.0",
+  "description": "Buttery-smooth card suite for Home Assistant — 192 cards, visual editors, one design language",
   "type": "module",
   "license": "MIT",
   "author": "LeeHueeng",
@@ -19,6 +19,7 @@
   "devDependencies": {
     "@mdi/js": "^7.4.47",
     "esbuild": "^0.24.0",
+    "js-yaml": "^5.2.3",
     "qrcode": "^1.5.4",
     "typescript": "^5.6.0"
   }

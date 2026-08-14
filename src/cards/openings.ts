@@ -5,6 +5,13 @@ import { silkControlStyles } from '../shared/base';
 import { domainOf, isActive, isUnavailable, moreInfo } from '../shared/service';
 import { accentFor } from '../shared/color';
 import { registerEditor } from '../shared/editor';
+import {
+  EntityItem,
+  EntityListConfig,
+  entityListSelector,
+  hasItemDetail,
+  normalizeEntityList,
+} from '../shared/list';
 
 export const META = {
   type: 'silk-openings-card',
@@ -13,8 +20,12 @@ export const META = {
 };
 
 export interface SilkOpeningsCardConfig extends LovelaceCardConfig {
-  /** binary_sensor / cover ids. YAML-only; omit to auto-discover. */
-  entities?: string[];
+  /**
+   * binary_sensor / cover ids, either as plain ids (what the picker writes) or
+   * as `{ entity, name?, icon?, color? }` for per-row detail. Omit or leave
+   * empty to auto-discover the house's openings.
+   */
+  entities?: EntityListConfig;
   name?: string;
   /** Also list the closed ones, after the open ones. Default false. */
   show_closed?: boolean;
@@ -62,12 +73,15 @@ const CLOCK_TICK_MS = 30_000;
 interface OpeningRow {
   entityId: string;
   name: string;
-  kind: Kind;
+  /** Resolved mdi icon — the per-item override, else the kind's open/closed pair. */
+  icon: string;
   open: boolean;
   /** No state object, or unavailable/unknown. */
   dead: boolean;
   /** last_changed in epoch ms; null when unparseable. */
   since: number | null;
+  /** Per-item accent override from YAML detail. */
+  color?: string;
 }
 
 /** Compact stamp for a dense row: 'now', then 12m / 5h / 3d. */
@@ -80,19 +94,73 @@ function shortSince(ms: number): string {
 }
 
 const EDITOR_TAG = 'silk-openings-card-editor';
+const PICKER_EDITOR_TAG = 'silk-openings-card-picker-editor';
+const DETAIL_EDITOR_TAG = 'silk-openings-card-detail-editor';
 
-// Entities stay YAML-only: the card auto-discovers by default, and the visual
-// editor covers the three choices that change how the list reads.
+/** Everything except the entity list — shared by both editor variants. */
+const EDITOR_REST = [
+  { name: 'name', selector: { text: {} } },
+  { name: 'show_closed', selector: { boolean: {} } },
+  { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
+];
+
+const EDITOR_LABELS = {
+  entities: '문·창문 센서',
+  name: '이름',
+  show_closed: '닫힌 것도 표시',
+  limit: '표시 개수',
+};
+
+const EDITOR_DEFAULTS = { name: DEFAULT_NAME, show_closed: false, limit: DEFAULT_LIMIT };
+
+// Empty list = auto-discovery, so the picker doubles as "narrow it down".
 registerEditor(
-  EDITOR_TAG,
-  [
-    { name: 'name', selector: { text: {} } },
-    { name: 'show_closed', selector: { boolean: {} } },
-    { name: 'limit', selector: { number: { min: 1, max: MAX_LIMIT, mode: 'box' } } },
-  ],
-  { name: 'Name', show_closed: 'Show closed too', limit: 'Rows' },
-  { name: DEFAULT_NAME, show_closed: false, limit: DEFAULT_LIMIT }
+  PICKER_EDITOR_TAG,
+  [entityListSelector('entities', ['binary_sensor', 'cover']), ...EDITOR_REST],
+  EDITOR_LABELS,
+  EDITOR_DEFAULTS
 );
+// Same form minus the picker: a list ha-form never sees is a list it cannot flatten.
+registerEditor(DETAIL_EDITOR_TAG, EDITOR_REST, EDITOR_LABELS, EDITOR_DEFAULTS);
+
+interface EditorElement extends HTMLElement {
+  hass?: HomeAssistant;
+  setConfig(config: SilkOpeningsCardConfig): void;
+}
+
+/**
+ * Editor front door. Per-item name/icon/color cannot be expressed by a
+ * multi-entity picker, so a hand-written list routes to the picker-less form
+ * and survives the round trip untouched; everything else gets the picker.
+ */
+if (!customElements.get(EDITOR_TAG)) {
+  customElements.define(
+    EDITOR_TAG,
+    class SilkOpeningsCardEditor extends HTMLElement implements EditorElement {
+      private _hass?: HomeAssistant;
+      private _inner?: EditorElement;
+
+      public get hass(): HomeAssistant | undefined {
+        return this._hass;
+      }
+
+      public set hass(hass: HomeAssistant | undefined) {
+        this._hass = hass;
+        if (this._inner) this._inner.hass = hass;
+      }
+
+      public setConfig(config: SilkOpeningsCardConfig): void {
+        const tag = hasItemDetail(config.entities) ? DETAIL_EDITOR_TAG : PICKER_EDITOR_TAG;
+        if (!this._inner || this._inner.localName !== tag) {
+          this._inner = document.createElement(tag) as EditorElement;
+          this.replaceChildren(this._inner);
+        }
+        this._inner.setConfig(config);
+        this._inner.hass = this._hass;
+      }
+    }
+  );
+}
 
 /**
  * The "did I leave something open?" card: a one-glance verdict in the header,
@@ -124,9 +192,12 @@ export class SilkOpeningsCard extends LitElement {
       if (!Array.isArray(config.entities)) {
         throw new Error('silk-openings-card: `entities` must be a list of entity ids');
       }
-      for (const id of config.entities) {
+      // Both shapes are legal: 'binary_sensor.x' or { entity: 'binary_sensor.x', … }.
+      for (const item of config.entities) {
+        const id = typeof item === 'string' ? item : (item as EntityItem | null)?.entity;
         if (typeof id !== 'string' || !id.includes('.')) {
-          throw new Error(`silk-openings-card: \`${String(id)}\` is not an entity id`);
+          const shown = typeof item === 'string' ? item : JSON.stringify(item);
+          throw new Error(`silk-openings-card: \`${String(shown)}\` is not an entity id`);
         }
       }
     }
@@ -158,13 +229,13 @@ export class SilkOpeningsCard extends LitElement {
   }
 
   /**
-   * Configured ids, or every door/window/garage binary_sensor. Discovery walks
-   * the whole state machine, so it is cached and only re-run when the entity
-   * count changes — device classes don't change between restarts.
+   * Configured items, or every door/window/garage binary_sensor. Discovery
+   * walks the whole state machine, so it is cached and only re-run when the
+   * entity count changes — device classes don't change between restarts.
    */
-  private _entityIds(hass: HomeAssistant): string[] {
-    const configured = this._config?.entities;
-    if (configured && configured.length > 0) return configured;
+  private _items(hass: HomeAssistant): EntityItem[] {
+    const configured = normalizeEntityList(this._config?.entities);
+    if (configured.length > 0) return configured;
     const ids = Object.keys(hass.states);
     if (this._autoIds === null || ids.length !== this._autoCount) {
       this._autoCount = ids.length;
@@ -176,7 +247,7 @@ export class SilkOpeningsCard extends LitElement {
         })
         .sort();
     }
-    return this._autoIds;
+    return this._autoIds.map((id) => ({ entity: id }));
   }
 
   private _kindOf(entityId: string, stateObj?: HassEntity): Kind {
@@ -190,19 +261,22 @@ export class SilkOpeningsCard extends LitElement {
 
   /** Open rows first, newest change first inside each group. */
   private _rows(hass: HomeAssistant): OpeningRow[] {
-    const rows = this._entityIds(hass)
-      .filter((id) => hass.states[id] !== undefined)
-      .map((id): OpeningRow => {
+    const rows = this._items(hass)
+      .filter((item) => hass.states[item.entity] !== undefined)
+      .map((item): OpeningRow => {
+        const id = item.entity;
         const stateObj = hass.states[id];
         const dead = isUnavailable(stateObj);
         const parsed = Date.parse(stateObj.last_changed);
+        const open = !dead && isActive(stateObj);
         return {
           entityId: id,
-          name: stateObj.attributes.friendly_name ?? id.split('.')[1] ?? id,
-          kind: this._kindOf(id, stateObj),
-          open: !dead && isActive(stateObj),
+          name: item.name ?? stateObj.attributes.friendly_name ?? id.split('.')[1] ?? id,
+          icon: item.icon ?? ICONS[this._kindOf(id, stateObj)][open ? 'open' : 'closed'],
+          open,
           dead,
           since: Number.isFinite(parsed) ? parsed : null,
+          color: item.color,
         };
       });
     rows.sort((a, b) => {
@@ -218,15 +292,17 @@ export class SilkOpeningsCard extends LitElement {
   }
 
   private _renderRow(row: OpeningRow): TemplateResult {
-    const icon = ICONS[row.kind][row.open ? 'open' : 'closed'];
     const when = row.since !== null ? shortSince(row.since) : '—';
+    // A per-item color replaces the accent on that row's icon only; the
+    // closed-row dimming still applies, so quiet rows stay quiet.
+    const iconStyle = row.color ? `color:${row.color}` : nothing;
     return html`
       <button
         class="row ${row.open ? 'open' : ''} ${row.dead ? 'dead' : ''}"
         aria-label=${`${row.name}: ${row.dead ? 'unavailable' : row.open ? 'open' : 'closed'}`}
         @click=${(ev: Event) => this._onRowClick(ev, row.entityId)}
       >
-        <ha-icon class="ricon" .icon=${icon}></ha-icon>
+        <ha-icon class="ricon" style=${iconStyle} .icon=${row.icon}></ha-icon>
         <span class="rname">${row.name}</span>
         <span class="when">${when}</span>
       </button>

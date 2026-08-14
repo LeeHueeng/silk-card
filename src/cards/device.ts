@@ -5,6 +5,7 @@ import { silkControlStyles } from '../shared/base';
 import { isUnavailable, moreInfo, clamp } from '../shared/service';
 import { accentFor } from '../shared/color';
 import { registerEditor } from '../shared/editor';
+import { EntityItem, entityListSelector, hasItemDetail } from '../shared/list';
 
 export const META = {
   type: 'silk-device-card',
@@ -20,11 +21,23 @@ export interface DeviceEntry {
   last_seen?: string;
 }
 
+/**
+ * A device, in any of the three shapes config accepts:
+ *
+ *   'sensor.door_battery'                      ← what the picker writes
+ *   { entity: 'sensor.door_battery', name: … }  ← a picked sensor, renamed
+ *   { name: '현관 센서', battery: …, signal: …, last_seen: … } ← the full row
+ *
+ * The first two are a battery sensor and nothing else: the row shows that
+ * sensor's name and level, and the signal / last-seen columns stay away.
+ */
+export type DeviceConfigEntry = string | EntityItem | DeviceEntry;
+
 export interface SilkDeviceCardConfig extends LovelaceCardConfig {
   /** Header label, defaults to "Devices". */
   name?: string;
-  /** The fleet. YAML-only: a list of {name, battery?, signal?, last_seen?}. */
-  devices: DeviceEntry[];
+  /** The fleet — battery sensor ids, or full {name, battery?, signal?, last_seen?} rows. */
+  devices: DeviceConfigEntry[];
 }
 
 const LOW_THRESHOLD = 20;
@@ -32,10 +45,87 @@ const WARN_THRESHOLD = 50;
 /** Re-render cadence so relative "last seen" stamps never go stale. */
 const CLOCK_TICK_MS = 30_000;
 
-const EDITOR_TAG = 'silk-device-card-editor';
+/**
+ * True when a device carries something a battery-sensor picker cannot express,
+ * so the editor must leave the list alone instead of flattening it.
+ */
+function hasDeviceDetail(devices?: DeviceConfigEntry[]): boolean {
+  if (!Array.isArray(devices)) return false;
+  return devices.some((device) => {
+    if (typeof device === 'string') return false;
+    // A {name, battery, …} row has no `entity` key for hasItemDetail to read,
+    // so anything that is not an {entity, …} item counts as detail outright.
+    if (!device || typeof (device as EntityItem).entity !== 'string') return true;
+    return hasItemDetail([device as EntityItem]);
+  });
+}
 
-// Devices stay YAML-only — nested per-device entity pickers would dwarf the card.
-registerEditor(EDITOR_TAG, [{ name: 'name', selector: { text: {} } }], { name: 'Name' });
+/** Friendly name with the redundant "Battery"/"Battery level" suffix trimmed. */
+function batteryName(stateObj: HassEntity | undefined, entityId: string): string {
+  const raw = (stateObj?.attributes.friendly_name as string | undefined) ?? entityId;
+  return raw.replace(/\s+battery(\s+level)?\s*$/i, '') || raw;
+}
+
+const EDITOR_TAG = 'silk-device-card-editor';
+/** With the battery-sensor picker — used for a plain list of ids. */
+const EDITOR_PICKER_TAG = 'silk-device-card-editor-picker';
+/** Header name only — used when `devices` are hand-written rows. */
+const EDITOR_PLAIN_TAG = 'silk-device-card-editor-plain';
+
+const EDITOR_LABELS: Record<string, string> = {
+  devices: '배터리 센서',
+  name: '이름',
+};
+
+registerEditor(
+  EDITOR_PICKER_TAG,
+  [
+    { name: 'name', selector: { text: {} } },
+    entityListSelector('devices', ['sensor'], ['battery']),
+  ],
+  EDITOR_LABELS
+);
+// A picker cannot express {name, battery, signal, last_seen}, so the field is
+// left out entirely for those configs — ha-form only writes back what it was
+// given, which is exactly what keeps a hand-written fleet intact.
+registerEditor(EDITOR_PLAIN_TAG, [{ name: 'name', selector: { text: {} } }], EDITOR_LABELS);
+
+/** The inner editors registered above, as far as the wrapper cares. */
+interface InnerEditor extends HTMLElement {
+  hass?: HomeAssistant;
+  setConfig(config: LovelaceCardConfig): void;
+}
+
+/**
+ * Hands the config to whichever editor can express it: the picker form for a
+ * plain list of battery sensors, the name-only form as soon as a device row
+ * carries detail no picker can hold. `config-changed` bubbles straight through.
+ */
+class SilkDeviceCardEditor extends HTMLElement {
+  private _hass?: HomeAssistant;
+  private _inner?: InnerEditor;
+
+  public set hass(hass: HomeAssistant | undefined) {
+    this._hass = hass;
+    if (this._inner) this._inner.hass = hass;
+  }
+
+  public get hass(): HomeAssistant | undefined {
+    return this._hass;
+  }
+
+  public setConfig(config: SilkDeviceCardConfig): void {
+    const tag = hasDeviceDetail(config?.devices) ? EDITOR_PLAIN_TAG : EDITOR_PICKER_TAG;
+    if (this._inner?.localName !== tag) {
+      this._inner = document.createElement(tag) as InnerEditor;
+      this.replaceChildren(this._inner);
+    }
+    if (this._hass) this._inner.hass = this._hass;
+    this._inner.setConfig(config);
+  }
+}
+
+if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkDeviceCardEditor);
 
 /** '<60s → just now, <1h → Nm ago, <24h → Hh ago, else Dd ago'; bad input → null. */
 function relativeTime(ms: number): string | null {
@@ -89,18 +179,14 @@ export class SilkDeviceCard extends LitElement {
   private _clockTimer?: number;
 
   public static getStubConfig(hass: HomeAssistant): Partial<SilkDeviceCardConfig> {
-    // Seed the preview from discovered battery sensors; users refine in YAML.
+    // Seed the preview from discovered battery sensors, in the simple shape
+    // the picker also writes; signal and last-seen are a YAML refinement.
     const devices = Object.keys(hass.states)
       .filter(
         (id) =>
           id.startsWith('sensor.') && hass.states[id].attributes.device_class === 'battery'
       )
-      .slice(0, 3)
-      .map((id): DeviceEntry => {
-        const raw = String(hass.states[id].attributes.friendly_name ?? id);
-        const name = raw.replace(/\s+battery(\s+level)?\s*$/i, '') || raw;
-        return { name, battery: id };
-      });
+      .slice(0, 3);
     return { type: 'custom:silk-device-card', devices };
   }
 
@@ -111,12 +197,22 @@ export class SilkDeviceCard extends LitElement {
   public setConfig(config: SilkDeviceCardConfig): void {
     if (!Array.isArray(config.devices) || config.devices.length === 0) {
       throw new Error(
-        'silk-device-card: `devices` is required — a list of {name, battery?, signal?, last_seen?}'
+        'silk-device-card: `devices` is required — battery sensor ids, or a list of {name, battery?, signal?, last_seen?}'
       );
     }
     for (const entry of config.devices) {
-      if (typeof entry?.name !== 'string' || !entry.name) {
-        throw new Error('silk-device-card: every device needs a `name`');
+      if (typeof entry === 'string') {
+        if (!entry.includes('.')) {
+          throw new Error(`silk-device-card: '${entry}' is not an entity id`);
+        }
+        continue;
+      }
+      const item = entry as Partial<EntityItem> & Partial<DeviceEntry>;
+      if (typeof item?.entity === 'string' && item.entity) continue;
+      if (typeof item?.name !== 'string' || !item.name) {
+        throw new Error(
+          'silk-device-card: every device needs an entity id, an `entity`, or a `name`'
+        );
       }
     }
     this._config = config;
@@ -169,10 +265,31 @@ export class SilkDeviceCard extends LitElement {
     return relativeTime(ms);
   }
 
+  /**
+   * Every config shape as a full entry. A bare id (or a picked {entity}) is a
+   * battery sensor and nothing else, so it borrows that sensor's name.
+   */
+  private _entries(): DeviceEntry[] {
+    const states = this.hass?.states;
+    return (this._config?.devices ?? []).map((device): DeviceEntry => {
+      if (typeof device === 'string') {
+        return { name: batteryName(states?.[device], device), battery: device };
+      }
+      const item = device as EntityItem;
+      if (typeof item.entity === 'string') {
+        return {
+          name: item.name ?? batteryName(states?.[item.entity], item.entity),
+          battery: item.entity,
+        };
+      }
+      return device as DeviceEntry;
+    });
+  }
+
   /** Resolved rows, sorted lowest battery first; batteryless devices sink. */
   private _rows(): DeviceRow[] {
     const hass = this.hass!;
-    const rows = this._config!.devices.map((entry): DeviceRow => {
+    const rows = this._entries().map((entry): DeviceRow => {
       const ids = [entry.battery, entry.signal, entry.last_seen].filter(
         (id): id is string => typeof id === 'string' && id !== ''
       );
@@ -238,9 +355,9 @@ export class SilkDeviceCard extends LitElement {
     // A column renders only when at least one device declares that sensor,
     // and then for every row, so the readouts line up as a quiet table.
     const columns = {
-      battery: config.devices.some((d) => d.battery),
-      signal: config.devices.some((d) => d.signal),
-      seen: config.devices.some((d) => d.last_seen),
+      battery: rows.some((row) => row.entry.battery),
+      signal: rows.some((row) => row.entry.signal),
+      seen: rows.some((row) => row.entry.last_seen),
     };
     const lowCount = rows.filter(
       (row) => row.level !== undefined && row.level < LOW_THRESHOLD

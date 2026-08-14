@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>bill card check</title>
+<style>
+  :root {
+    --primary-color:#4aa8ff; --rgb-primary-color:74,168,255;
+    --primary-text-color:#e1e5ea; --rgb-primary-text-color:225,229,234;
+    --secondary-text-color:#9aa4b2; --card-background-color:#1c1f26;
+    --divider-color:rgba(225,229,234,0.14);
+  }
+  body { margin:0; background:#12141a; padding:24px; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
+  .slot { width: 420px; height: 260px; }
+</style>
+</head>
+<body>
+<div class="slot"><silk-bill-card id="c"></silk-bill-card></div>
+<script type="module">
+import '../dist/silk-card.js';
+import { MDI_PATHS } from './icons.js';
+
+class MdiBase extends HTMLElement {
+  constructor(){ super(); this.attachShadow({mode:'open'}); }
+  renderIcon(icon){
+    const d = MDI_PATHS[icon] ?? MDI_PATHS['mdi:eye'];
+    this.shadowRoot.innerHTML =
+      '<style>:host{display:block;line-height:0}svg{width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px);fill:currentColor;display:block}</style>' +
+      `<svg viewBox="0 0 24 24"><path d="${d}"/></svg>`;
+  }
+}
+if (!customElements.get('ha-icon')) customElements.define('ha-icon', class extends MdiBase {
+  set icon(v){ this._i=v; this.renderIcon(v); }
+  connectedCallback(){ if(!this.shadowRoot.innerHTML) this.renderIcon(this.getAttribute('icon') ?? this._i); }
+});
+if (!customElements.get('ha-card')) customElements.define('ha-card', class extends HTMLElement {
+  connectedCallback(){ this.style.cssText += ';display:flex;background:var(--card-background-color);border-radius:16px;'; }
+});
+
+const now = new Date().toISOString();
+const E = (id, state, attributes={}) => [id, { entity_id:id, state:String(state), attributes, last_changed:now, last_updated:now }];
+
+// Four smart plugs, cumulative kWh. Targets sum to exactly 350.0 kWh so the
+// tariff math can be checked by hand against the rendered bill.
+const TARGET = {
+  'sensor.plug_ac': 152.4,
+  'sensor.plug_tv': 88.6,
+  'sensor.plug_washer': 61.2,
+  'sensor.plug_dishwasher': 47.8,
+  'sensor.home_energy': 420.0,   // whole-home meter, only used by ?edge=1
+};
+
+/** Split a total across daily buckets with deterministic jitter, exactly. */
+function dailyRows(start, end, total, seed) {
+  const days = [];
+  const d = new Date(start);
+  while (d.getTime() < end.getTime()) {
+    days.push(new Date(d).toISOString());
+    d.setDate(d.getDate() + 1);
+  }
+  const w = days.map((_, i) => 1 + 0.5 * Math.sin(i * 1.7 + seed));
+  const sum = w.reduce((a, b) => a + b, 0);
+  let used = 0;
+  return days.map((iso, i) => {
+    const change = i === days.length - 1 ? total - used : Math.round((total * w[i]) / sum * 1e6) / 1e6;
+    used += change;
+    return { start: iso, change };
+  });
+}
+
+const hass = {
+  locale:{language:'ko'}, entities:{},
+  states: Object.fromEntries([
+    E('sensor.plug_ac','1284.2',{ friendly_name:'에어컨', unit_of_measurement:'kWh', device_class:'energy', state_class:'total_increasing' }),
+    E('sensor.plug_tv','642.8',{ friendly_name:'거실 TV', unit_of_measurement:'kWh', device_class:'energy', state_class:'total_increasing' }),
+    E('sensor.plug_washer','311.5',{ friendly_name:'세탁기', unit_of_measurement:'kWh', device_class:'energy', state_class:'total_increasing' }),
+    E('sensor.plug_dishwasher','208.9',{ friendly_name:'식기세척기', unit_of_measurement:'kWh', device_class:'energy', state_class:'total_increasing' }),
+  ]),
+  callService: async()=>{},
+  async callWS(msg){
+    if (msg.type !== 'recorder/statistics_during_period') return {};
+    const start = new Date(msg.start_time);
+    const end = new Date(msg.end_time);
+    const span = (end - start) / 86400000;
+    // Targets are month-to-date; other windows scale off elapsed month days,
+    // so the default 'month' view lands on exactly the numbers above.
+    const monthSpan = (end - new Date(end.getFullYear(), end.getMonth(), 1)) / 86400000;
+    const out = {};
+    msg.statistic_ids.forEach((id, i) => {
+      const target = TARGET[id];
+      if (target === undefined) return;            // unknown id → no statistics
+      out[id] = dailyRows(start, end, target * (span / monthSpan), i * 2.3);
+    });
+    return out;
+  },
+};
+
+await customElements.whenDefined('silk-bill-card');
+const params = new URLSearchParams(location.search);
+// ?w= / ?h= resize the slot to check narrow grid columns.
+const slot = document.querySelector('.slot');
+if (params.get('w')) slot.style.width = `${params.get('w')}px`;
+if (params.get('h')) slot.style.height = `${params.get('h')}px`;
+const kr = params.get('tariff') === 'kr';
+const edge = params.get('edge') === '1';   // ghost device + whole-home remainder
+const el = document.getElementById('c');
+const devices = [
+  { entity:'sensor.plug_ac', name:'에어컨', icon:'mdi:air-conditioner' },
+  { entity:'sensor.plug_tv', name:'거실 TV', icon:'mdi:television' },
+  { entity:'sensor.plug_washer', name:'세탁기', icon:'mdi:washing-machine' },
+  { entity:'sensor.plug_dishwasher', name:'식기세척기', icon:'mdi:dishwasher' },
+];
+if (edge) {
+  hass.states['sensor.plug_ghost'] =
+    E('sensor.plug_ghost','unknown',{ friendly_name:'전기장판', unit_of_measurement:'kWh' })[1];
+  hass.states['sensor.home_energy'] =
+    E('sensor.home_energy','5120.4',{ friendly_name:'집 전체', unit_of_measurement:'kWh', device_class:'energy' })[1];
+  devices.push({ entity:'sensor.plug_ghost', name:'전기장판', icon:'mdi:radiator' });
+}
+el.setConfig({
+  type:'custom:silk-bill-card',
+  name:'전기 요금',
+  tariff: kr ? 'kr-residential' : 'flat',
+  rate: 200,
+  devices,
+  ...(edge ? { unaccounted:'sensor.home_energy' } : {}),
+});
+el.hass = hass;
+
+// ?tap=2 taps the third period chip (오늘) once painted, to check the local
+// period switch: active chip moves, numbers refetch, nothing writes config.
+const tap = params.get('tap');
+if (tap !== null) {
+  await el.updateComplete;
+  await new Promise((r) => setTimeout(r, 60));
+  el.renderRoot.querySelectorAll('.chip')[Number(tap)]?.click();
+}
+</script>
+</body>
+</html>

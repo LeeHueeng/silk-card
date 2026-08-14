@@ -64,17 +64,19 @@ registerEditor(
       type: 'grid',
       schema: [
         { name: 'icon', selector: { icon: {} } },
-        { name: 'hours_to_show', selector: { number: { min: 1, mode: 'box' } } },
+        { name: 'color', selector: { text: {} } },
       ],
     },
+    { name: 'hours_to_show', selector: { number: { min: 1, mode: 'box' } } },
     { name: 'invert', selector: { boolean: {} } },
   ],
   {
-    entity: 'Entity',
-    name: 'Name',
-    icon: 'Icon',
-    hours_to_show: 'Hours to show',
-    invert: 'Invert (off = good)',
+    entity: '엔티티',
+    name: '이름',
+    icon: '아이콘',
+    color: '강조 색상',
+    hours_to_show: '표시 시간',
+    invert: '반대로 보기(꺼짐=정상)',
   },
   { hours_to_show: DEFAULT_HOURS }
 );

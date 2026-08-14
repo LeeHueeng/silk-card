@@ -4,6 +4,7 @@ import { HomeAssistant, HassEntity, LovelaceCardConfig } from '../types';
 import { silkControlStyles } from '../shared/base';
 import { domainOf, isActive, isUnavailable, toggleEntity, moreInfo, haptic } from '../shared/service';
 import { accentFor } from '../shared/color';
+import { EntityItem, normalizeEntityList, hasItemDetail, entityListSelector } from '../shared/list';
 
 export const META = {
   type: 'silk-launcher-card',
@@ -26,7 +27,8 @@ export interface LauncherAction {
 }
 
 export interface LauncherItemConfig {
-  icon: string;
+  /** Optional when the item has an `entity` — the entity's own icon is used then. */
+  icon?: string;
   name?: string;
   entity?: string;
   tap?: LauncherAction;
@@ -34,9 +36,23 @@ export interface LauncherItemConfig {
   color?: string;
 }
 
-/** YAML-only card: no visual editor — configure `items` in YAML. */
+/**
+ * `items` takes both shapes: a bare entity id (what the picker writes) turns
+ * into a tile that borrows its icon and label from the entity, while an object
+ * spells out icon/name/tap/color by hand.
+ */
+export type LauncherItemEntry = string | LauncherItemConfig;
+
 export interface SilkLauncherCardConfig extends LovelaceCardConfig {
-  items: LauncherItemConfig[];
+  items: LauncherItemEntry[];
+  /** Optional header above the grid. */
+  name?: string;
+}
+
+/** A config item resolved for rendering. */
+interface ResolvedItem extends LauncherItemConfig {
+  /** Written as a bare id: icon and label come from the entity at render time. */
+  auto?: boolean;
 }
 
 const MAX_ITEMS = 12;
@@ -88,6 +104,109 @@ function predictedState(domain: string, active: boolean): string {
   }
 }
 
+/**
+ * Both config shapes → tiles. Objects pass through exactly as authored (they may
+ * be pure tap actions with no entity, which the shared normalizer would drop);
+ * bare ids go through `normalizeEntityList` so an id means the same thing here
+ * as on every other Silk card.
+ */
+function resolveItems(items: LauncherItemEntry[] | undefined): ResolvedItem[] {
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item): ResolvedItem[] =>
+    typeof item === 'string'
+      ? normalizeEntityList([item]).map((entry) => ({ entity: entry.entity, auto: true }))
+      : item && typeof item === 'object'
+        ? [item]
+        : []
+  );
+}
+
+/**
+ * True when the list carries detail an entity picker cannot express — a tap
+ * action, an entity-less tile, or the shared name/icon/color detail. The editor
+ * then leaves `items` out of its schema entirely, so nothing hand-written is
+ * flattened by opening the visual editor.
+ */
+function itemsHaveDetail(items: LauncherItemEntry[] | undefined): boolean {
+  if (!Array.isArray(items)) return false;
+  const objects = items.filter(
+    (item): item is LauncherItemConfig => typeof item === 'object' && item !== null
+  );
+  if (objects.some((item) => item.tap !== undefined || typeof item.entity !== 'string')) return true;
+  return hasItemDetail(objects.map((item): EntityItem => ({ ...item, entity: String(item.entity) })));
+}
+
+const EDITOR_TAG = 'silk-launcher-card-editor';
+
+/** Shortcuts point at things you can command; anything else opens more-info. */
+const PICKER_DOMAINS = [...CONTROLLABLE, 'climate', 'media_player', 'vacuum'].sort();
+
+const LABELS: Record<string, string> = {
+  items: '바로가기 엔티티',
+  name: '이름',
+};
+
+const NAME_FIELD = { name: 'name', selector: { text: {} } };
+/** Stable arrays: a new schema identity on every render would rebuild the form. */
+const SCHEMA_FULL = [entityListSelector('items', PICKER_DOMAINS), NAME_FIELD];
+const SCHEMA_NO_ITEMS = [NAME_FIELD];
+
+/**
+ * Hand-rolled rather than `registerEditor` because the schema depends on the
+ * config: the `items` field must disappear when the list carries YAML detail.
+ */
+class SilkLauncherCardEditor extends LitElement {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
+  @state() private _config?: SilkLauncherCardConfig;
+
+  public setConfig(config: SilkLauncherCardConfig): void {
+    this._config = config;
+  }
+
+  protected render(): TemplateResult | typeof nothing {
+    const config = this._config;
+    if (!this.hass || !config) return nothing;
+    const detail = itemsHaveDetail(config.items);
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${config}
+        .schema=${detail ? SCHEMA_NO_ITEMS : SCHEMA_FULL}
+        .computeLabel=${(field: { name: string }) => LABELS[field.name] ?? field.name}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+      ${detail
+        ? html`<div class="note">
+            항목별 아이콘·동작이 지정되어 있어 목록은 YAML에서만 편집할 수 있습니다.
+          </div>`
+        : nothing}
+    `;
+  }
+
+  private _valueChanged(ev: CustomEvent): void {
+    ev.stopPropagation();
+    this.dispatchEvent(
+      new CustomEvent('config-changed', {
+        detail: { config: ev.detail.value },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  static styles = css`
+    .note {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--secondary-text-color);
+    }
+  `;
+}
+
+if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, SilkLauncherCardEditor);
+
 @customElement('silk-launcher-card')
 export class SilkLauncherCard extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
@@ -102,35 +221,51 @@ export class SilkLauncherCard extends LitElement {
   private _optimisticTimers: Record<string, number> = {};
 
   public static getStubConfig(hass: HomeAssistant): Partial<SilkLauncherCardConfig> {
-    const pick = (prefix: string): string | undefined =>
-      Object.keys(hass.states).find((id) => id.startsWith(prefix));
-    const items: LauncherItemConfig[] = [];
-    const light = pick('light.');
-    if (light) items.push({ icon: 'mdi:lightbulb', name: 'Light', entity: light });
-    const sw = pick('switch.');
-    if (sw) items.push({ icon: 'mdi:power-plug', name: 'Switch', entity: sw });
-    const scene = pick('scene.');
-    if (scene) items.push({ icon: 'mdi:palette', name: 'Scene', entity: scene });
+    // Bare ids, so the freshly added card is editable in the visual editor.
+    const items: LauncherItemEntry[] = Object.keys(hass.states)
+      .filter((id) => CONTROLLABLE.has(domainOf(id)))
+      .slice(0, 6);
     if (!items.length) {
       items.push({ icon: 'mdi:home', name: 'Home', tap: { action: 'navigate', path: '/lovelace/0' } });
     }
     return { type: 'custom:silk-launcher-card', items };
   }
 
+  public static async getConfigElement(): Promise<HTMLElement> {
+    return document.createElement(EDITOR_TAG);
+  }
+
   public setConfig(config: SilkLauncherCardConfig): void {
     if (!Array.isArray(config.items) || config.items.length === 0) {
-      throw new Error('silk-launcher-card: `items` is required — 2-12 of {icon, entity/tap}');
+      throw new Error(
+        'silk-launcher-card: `items` is required — 2-12 entity ids or {icon, entity/tap}'
+      );
     }
     if (config.items.length > MAX_ITEMS) {
       throw new Error(`silk-launcher-card: at most ${MAX_ITEMS} \`items\``);
     }
-    config.items.forEach((item, i) => {
+    config.items.forEach((entry, i) => {
       const at = `silk-launcher-card: items[${i}]`;
-      if (!item || typeof item.icon !== 'string' || !item.icon) {
-        throw new Error(`${at} needs an \`icon\``);
+      // A bare id is a complete item: the entity supplies icon, name and action.
+      if (typeof entry === 'string') {
+        if (!entry.includes('.')) {
+          throw new Error(`${at} must be an entity id like \`light.kitchen\``);
+        }
+        return;
+      }
+      if (!entry || typeof entry !== 'object') {
+        throw new Error(`${at} must be an entity id or an item object`);
+      }
+      const item: LauncherItemConfig = entry;
+      if (item.icon !== undefined && (typeof item.icon !== 'string' || !item.icon)) {
+        throw new Error(`${at} \`icon\` must be an icon name`);
       }
       if (item.entity !== undefined && typeof item.entity !== 'string') {
         throw new Error(`${at} \`entity\` must be an entity id`);
+      }
+      // Nothing to borrow an icon from, so one has to be spelled out.
+      if (!item.entity && !item.icon) {
+        throw new Error(`${at} needs an \`icon\``);
       }
       const tap = item.tap;
       if (tap === undefined) {
@@ -278,7 +413,7 @@ export class SilkLauncherCard extends LitElement {
     }
   }
 
-  private _renderItem(item: LauncherItemConfig): TemplateResult {
+  private _renderItem(item: ResolvedItem): TemplateResult {
     const hass = this.hass;
     const stateObj = item.entity ? hass?.states[item.entity] : undefined;
     const override = item.entity ? this._optimistic[item.entity] : undefined;
@@ -292,7 +427,11 @@ export class SilkLauncherCard extends LitElement {
         : stateObj;
     const accent = accentFor(displayObj, item.color);
     const action = this._resolveAction(item).action;
-    const label = item.name ?? stateObj?.attributes.friendly_name ?? item.entity ?? item.icon;
+    const entityName = stateObj?.attributes.friendly_name ?? item.entity;
+    // An icon-only tile stays icon-only; a tile written as a bare id has nothing
+    // but its entity to name it, so the friendly name becomes the label.
+    const label = item.name ?? (item.auto ? entityName : undefined);
+    const aria = item.name ?? entityName ?? item.icon ?? 'shortcut';
 
     return html`
       <button
@@ -300,12 +439,16 @@ export class SilkLauncherCard extends LitElement {
           ? 'unavailable'
           : ''}"
         style="--silk-accent:${accent}"
-        aria-label=${label}
+        aria-label=${aria}
         aria-pressed=${action === 'toggle' && !unavailable ? String(active) : nothing}
         @click=${(ev: Event) => this._onItemClick(ev, item)}
       >
-        <span class="tile"><ha-icon .icon=${item.icon}></ha-icon></span>
-        ${item.name ? html`<span class="label" title=${item.name}>${item.name}</span>` : nothing}
+        <span class="tile">
+          ${item.icon
+            ? html`<ha-icon .icon=${item.icon}></ha-icon>`
+            : html`<ha-state-icon .hass=${hass} .stateObj=${stateObj}></ha-state-icon>`}
+        </span>
+        ${label ? html`<span class="label" title=${label}>${label}</span>` : nothing}
       </button>
     `;
   }
@@ -313,9 +456,11 @@ export class SilkLauncherCard extends LitElement {
   protected render(): TemplateResult | typeof nothing {
     const config = this._config;
     if (!config) return nothing;
+    const items = resolveItems(config.items);
     return html`
       <ha-card>
-        <div class="grid">${config.items.map((item) => this._renderItem(item))}</div>
+        ${config.name ? html`<div class="header">${config.name}</div>` : nothing}
+        <div class="grid">${items.map((item) => this._renderItem(item))}</div>
       </ha-card>
     `;
   }
@@ -330,6 +475,17 @@ export class SilkLauncherCard extends LitElement {
         gap: 0;
         padding: 12px;
         cursor: default;
+      }
+      .header {
+        min-width: 0;
+        margin: 0 2px 10px;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--secondary-text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .grid {
         display: grid;
@@ -388,7 +544,8 @@ export class SilkLauncherCard extends LitElement {
         outline: 2px solid color-mix(in srgb, var(--silk-accent) 70%, transparent);
         outline-offset: 2px;
       }
-      .tile ha-icon {
+      .tile ha-icon,
+      .tile ha-state-icon {
         --mdc-icon-size: 26px;
         pointer-events: none;
       }
